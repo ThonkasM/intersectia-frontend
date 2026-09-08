@@ -78,7 +78,7 @@ export class TraditionalMode implements SimulationMode {
 
   private moveVehicles(dt: number): void {
     for (const v of this.vehicles) {
-      if (v.state === 'queued' || v.state === 'gone') continue;
+      if (v.frozen || v.state === 'queued' || v.state === 'gone') continue;
 
       const speed = this.effectiveSpeed(v);
       v.speed = speed;
@@ -105,6 +105,48 @@ export class TraditionalMode implements SimulationMode {
         v.waitedSeconds += dt;
       }
     }
+  }
+
+  pickAt(camera: THREE.Camera, ndcX: number, ndcY: number): string | null {
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), camera);
+    const meshes: THREE.Object3D[] = this.vehicles.map((v) => v.mesh);
+    const hits = raycaster.intersectObjects(meshes, true);
+    if (hits.length === 0) return null;
+    const hitId = hits[0].object.id;
+    const hit = this.vehicles.find((v) => v.mesh.getObjectById(hitId));
+    return hit ? hit.id : null;
+  }
+
+  toggleVehicleFreeze(id: string): void {
+    const vehicle = this.vehicles.find((v) => v.id === id);
+    if (!vehicle) return;
+    vehicle.frozen = !vehicle.frozen;
+    vehicle.speed = 0;
+  }
+
+  reset(): void {
+    for (const v of this.vehicles) {
+      this.scene?.remove(v.mesh);
+      this.disposeMesh(v.mesh);
+      this.bubbles?.remove(v.id);
+      this.lanes.delete(v);
+    }
+    this.vehicles = [];
+    this.queue = [];
+    this.occupants = [];
+    this.crossed = 0;
+    this.totalWaitSeconds = 0;
+    this.avgWaitSeconds = null;
+    this.nextId = 0;
+    this.spawnCountdown = 1.0;
+    this.publishHud();
+  }
+
+  setCollisions(_enabled: boolean): void {
+    // En modo tradicional no hay jugador; los autónomos siempre se evitan entre
+    // sí mediante la separación, así que las colisiones no aplican aquí.
+    void _enabled;
   }
 
   private effectiveSpeed(v: Vehicle): number {
@@ -207,7 +249,12 @@ export class TraditionalMode implements SimulationMode {
   private updateBubbles(): void {
     if (!this.bubbles) return;
     for (const v of this.vehicles) {
-      this.bubbles.sync(v.id, STATE_LABELS[v.state], v.mesh.position.x, v.mesh.position.z);
+      const label = v.crashed
+        ? 'Choque'
+        : v.frozen
+          ? 'Detenido'
+          : STATE_LABELS[v.state];
+      this.bubbles.sync(v.id, label, v.mesh.position.x, v.mesh.position.z);
     }
   }
 
@@ -232,15 +279,21 @@ export class TraditionalMode implements SimulationMode {
   }
 
   private disposeMesh(group: THREE.Group): void {
+    const unregister = group.userData.unregisterHeadlight as (() => void) | undefined;
+    unregister?.();
     group.traverse((obj) => {
       if (obj instanceof THREE.Mesh) {
+        if (obj.userData.shared) return;
         obj.geometry.dispose();
         const materials = Array.isArray(obj.material)
           ? obj.material
           : [obj.material];
         for (const material of materials) material.dispose();
+      } else if (obj instanceof THREE.PointLight) {
+        obj.dispose();
       }
     });
+    (group.userData.beaconMat as THREE.Material | undefined)?.dispose();
   }
 
   private pickWinner(queue: Vehicle[]): Vehicle {

@@ -12,6 +12,8 @@ const LABEL_STYLES: Record<string, { bg: string; border: string; text: string }>
   Avanzando: { bg: '#1e3a5f', border: '#60a5fa', text: '#dbeafe' },
   Espera: { bg: '#7f1d1d', border: '#f87171', text: '#fee2e2' },
   Cruzando: { bg: '#064e3b', border: '#34d399', text: '#d1fae5' },
+  Detenido: { bg: '#164e63', border: '#38bdf8', text: '#cffafe' },
+  Choque: { bg: '#4a0e0e', border: '#ff6b6b', text: '#ffe3e3' },
 };
 
 const textureCache = new Map<string, THREE.CanvasTexture>();

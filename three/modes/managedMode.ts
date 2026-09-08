@@ -8,6 +8,8 @@ import {
   type VehicleState,
 } from '../../lib/constants';
 import { BubbleLayer } from '../bubbles';
+import { getActiveRig } from '../cameraRig';
+import { isCollisionsEnabled } from '../collisions';
 import { hudBridge } from '../hud';
 import { GamepadController } from '../input/gamepadController';
 import { PlayerVehicle } from '../input/playerVehicle';
@@ -33,6 +35,8 @@ export class ManagedMode implements SimulationMode {
   private player: PlayerVehicle | null = null;
   private playerSeenOnce = false;
   private sendTimer = 0;
+  private prevY = false;
+  private prevX = false;
   private bubbles?: BubbleLayer;
 
   constructor(
@@ -45,6 +49,7 @@ export class ManagedMode implements SimulationMode {
     this.bubbles = new BubbleLayer(scene, () => hudBridge.labelsOn);
     this.socket.connect();
     this.socket.setMode(this.mode);
+    this.socket.setCollisions(isCollisionsEnabled());
     this.fetchAvgWait();
     this.fetchSummary();
 
@@ -67,6 +72,11 @@ export class ManagedMode implements SimulationMode {
     this.unsubscribers.push(
       this.gamepad.onStatus((connected) => this.handleGamepad(connected))
     );
+    // Mando ya conectado antes de remontar el modo (cambio de modo): el scan del
+    // constructor no alcanzó a notificar a este start().
+    if (this.gamepad.isConnected() && !this.player) {
+      this.handleGamepad(true);
+    }
     this.publish();
   }
 
@@ -94,9 +104,18 @@ export class ManagedMode implements SimulationMode {
     for (const v of this.vehicles.values()) v.syncVisual(dt);
     if (this.player && this.gamepad.isConnected()) {
       const input = this.gamepad.read();
-      this.player.update(input, dt);
-      this.player.updateLane(input, dt);
-      this.player.commitMove(dt);
+      if (input.y && !this.prevY) getActiveRig()?.toggleZoom();
+      if (input.x && !this.prevX) this.toggleCameraMode();
+      this.prevY = input.y;
+      this.prevX = input.x;
+      if (this.player.vehicle.crashed) {
+        // Colisión: el jugador queda detenido hasta que el backend lo recupere.
+        this.player.speed = 0;
+      } else {
+        this.player.update(input, dt);
+        this.player.updateLane(input, dt);
+        this.player.commitMove(dt);
+      }
       this.player.syncVisual(dt);
       this.sendTimer += dt;
       if (this.sendTimer >= 1 / 15) {
@@ -111,6 +130,16 @@ export class ManagedMode implements SimulationMode {
       }
     }
     this.updateBubbles();
+  }
+
+  setCollisions(enabled: boolean): void {
+    this.socket.setCollisions(enabled);
+  }
+
+  private toggleCameraMode(): void {
+    const rig = getActiveRig();
+    if (!rig) return;
+    rig.setMode(rig.mode === 'firstPerson' ? 'orbit' : 'firstPerson');
   }
 
   private handleGamepad(connected: boolean): void {
@@ -134,6 +163,7 @@ export class ManagedMode implements SimulationMode {
         this.playerSeenOnce = true;
         this.player.authorized = rv.state === 'crossing';
         this.player.vehicle.setState(rv.state);
+        this.player.vehicle.crashed = rv.crashed;
         if (!this.gamepad.isConnected()) {
           this.player.vehicle.setTarget(rv.x, rv.z);
         }
@@ -143,6 +173,8 @@ export class ManagedMode implements SimulationMode {
       const prevState: VehicleState = local.state;
       local.setTarget(rv.x, rv.z);
       local.setState(rv.state);
+      local.frozen = rv.frozen;
+      local.crashed = rv.crashed;
       if (prevState !== 'gone' && rv.state === 'gone') {
         this.crossed += 1;
       }
@@ -205,21 +237,88 @@ export class ManagedMode implements SimulationMode {
 
   private updateBubbles(): void {
     if (!this.bubbles) return;
+    const firstPerson = getActiveRig()?.mode === 'firstPerson';
     for (const [id, v] of this.vehicles) {
-      this.bubbles.sync(id, STATE_LABELS[v.state], v.mesh.position.x, v.mesh.position.z);
+      if (firstPerson && id === PLAYER.ID) {
+        // En primera persona el globo del jugador no se muestra sobre el
+        // vehículo (la info va en el minimapa). Se oculta explícitamente para
+        // que el sprite creado en frames previos no quede visible.
+        this.bubbles.sync(id, '', v.mesh.position.x, v.mesh.position.z);
+        continue;
+      }
+      const label = v.crashed
+        ? 'Choque'
+        : v.frozen
+          ? 'Detenido'
+          : STATE_LABELS[v.state];
+      this.bubbles.sync(id, label, v.mesh.position.x, v.mesh.position.z);
     }
   }
 
+  pickAt(camera: THREE.Camera, ndcX: number, ndcY: number): string | null {
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), camera);
+    const meshes: THREE.Object3D[] = [];
+    for (const [id, v] of this.vehicles) {
+      if (id === PLAYER.ID) continue;
+      meshes.push(v.mesh);
+    }
+    const hits = raycaster.intersectObjects(meshes, true);
+    if (hits.length === 0) return null;
+    const hitId = hits[0].object.id;
+    for (const [id, v] of this.vehicles) {
+      if (id === PLAYER.ID) continue;
+      if (v.mesh.getObjectById(hitId)) return id;
+    }
+    return null;
+  }
+
+  toggleVehicleFreeze(id: string): void {
+    const local = this.vehicles.get(id);
+    if (!local || id === PLAYER.ID) return;
+    local.frozen = !local.frozen;
+    if (local.frozen) this.socket.freezeVehicle(id);
+    else this.socket.resumeVehicle(id);
+  }
+
+  reset(): void {
+    this.socket.resetSimulation();
+    for (const [id, v] of this.vehicles) {
+      if (id === PLAYER.ID) continue;
+      this.scene?.remove(v.mesh);
+      this.disposeMesh(v.mesh);
+      this.bubbles?.remove(id);
+    }
+    this.vehicles.clear();
+    if (this.player) {
+      this.player.vehicle.setState('approach');
+      this.player.speed = 0;
+      this.player.authorized = false;
+      this.playerSeenOnce = false;
+      this.vehicles.set(PLAYER.ID, this.player.vehicle);
+    }
+    this.crossed = 0;
+    this.decisions = [];
+    this.lastDecision = null;
+    this.publish();
+  }
+
   private disposeMesh(group: THREE.Group): void {
+    const unregister = group.userData.unregisterHeadlight as (() => void) | undefined;
+    unregister?.();
     group.traverse((obj) => {
       if (obj instanceof THREE.Mesh) {
+        if (obj.userData.shared) return;
         obj.geometry.dispose();
         const materials = Array.isArray(obj.material)
           ? obj.material
           : [obj.material];
         for (const material of materials) material.dispose();
+      } else if (obj instanceof THREE.PointLight) {
+        obj.dispose();
       }
     });
+    (group.userData.beaconMat as THREE.Material | undefined)?.dispose();
   }
 
   private publish(): void {

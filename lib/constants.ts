@@ -33,8 +33,8 @@ export const LANES: Record<Direction, [number, number]> = {
 };
 
 export const LANE_COUNT = 2;
-export const MIN_FOLLOW_DISTANCE = 4.5;
-export const MIN_STOP_DISTANCE = 2.0;
+export const MIN_FOLLOW_DISTANCE = 6.0;
+export const MIN_STOP_DISTANCE = 3.4;
 
 export function laneOffset(from: Direction, lane: number): { x: number; z: number } {
   const offset = LANES[from][lane] ?? LANES[from][0];

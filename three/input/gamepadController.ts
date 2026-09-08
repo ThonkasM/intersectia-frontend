@@ -1,4 +1,10 @@
-export type GamepadInput = { throttle: number; brake: number; steer: number };
+export type GamepadInput = {
+  throttle: number;
+  brake: number;
+  steer: number;
+  y: boolean;
+  x: boolean;
+};
 
 export class GamepadController {
   private index: number | null = null;
@@ -9,6 +15,22 @@ export class GamepadController {
     if (typeof window === 'undefined') return;
     window.addEventListener('gamepadconnected', this.handleConnect);
     window.addEventListener('gamepaddisconnected', this.handleDisconnect);
+    // Un mando ya conectado no re-dispara `gamepadconnected` al remontar el
+    // modo (cambio de modo, StrictMode). Se detecta escaneando el estado actual.
+    this.scan();
+  }
+
+  private scan(): void {
+    if (typeof navigator === 'undefined') return;
+    const pads = navigator.getGamepads();
+    for (const gp of pads) {
+      if (gp) {
+        this.index = gp.index;
+        this.connected = true;
+        for (const fn of this.listeners) fn(true);
+        return;
+      }
+    }
   }
 
   isConnected(): boolean {
@@ -16,9 +38,11 @@ export class GamepadController {
   }
 
   read(): GamepadInput {
-    if (this.index === null || typeof navigator === 'undefined') return { throttle: 0, brake: 0, steer: 0 };
+    if (this.index === null || typeof navigator === 'undefined') {
+      return { throttle: 0, brake: 0, steer: 0, y: false, x: false };
+    }
     const gp = navigator.getGamepads()[this.index];
-    if (!gp) return { throttle: 0, brake: 0, steer: 0 };
+    if (!gp) return { throttle: 0, brake: 0, steer: 0, y: false, x: false };
     const axisX = gp.axes[0] ?? 0;
     const right = (gp.buttons[5]?.value ?? 0) > 0.5 || axisX > 0.5;
     const left = (gp.buttons[4]?.value ?? 0) > 0.5 || axisX < -0.5;
@@ -26,6 +50,8 @@ export class GamepadController {
       throttle: Math.max(0, gp.buttons[7]?.value ?? 0),
       brake: Math.max(0, gp.buttons[6]?.value ?? 0),
       steer: right ? 1 : left ? -1 : 0,
+      y: gp.buttons[3]?.pressed ?? false,
+      x: gp.buttons[2]?.pressed ?? false,
     };
   }
 

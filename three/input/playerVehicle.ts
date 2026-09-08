@@ -159,7 +159,7 @@ export class PlayerVehicle {
         metalness: 0.1,
       })
     );
-    beacon.position.y = 1.28;
+    beacon.position.y = 1.55;
     this.vehicle.mesh.add(beacon);
   }
 }

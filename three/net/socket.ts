@@ -7,6 +7,8 @@ export type RemoteVehicleDto = {
   z: number;
   from: Direction;
   state: VehicleState;
+  frozen: boolean;
+  crashed: boolean;
 };
 
 export class IntersectionSocket {
@@ -66,5 +68,21 @@ export class IntersectionSocket {
 
   sendPlayerState(state: { id: string; x: number; z: number; from: Direction; speed: number }): void {
     this.socket?.emit('playerState', state);
+  }
+
+  freezeVehicle(id: string): void {
+    this.socket?.emit('freezeVehicle', { id });
+  }
+
+  resumeVehicle(id: string): void {
+    this.socket?.emit('resumeVehicle', { id });
+  }
+
+  resetSimulation(): void {
+    this.socket?.emit('reset');
+  }
+
+  setCollisions(enabled: boolean): void {
+    this.socket?.emit('setCollisions', { enabled });
   }
 }
