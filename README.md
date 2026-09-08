@@ -1,36 +1,28 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# IntersectIA Frontend
 
-## Getting Started
+Frontend of **IntersectIA**: a landing page about IoT & Autonomous Vehicles plus a 3D demo (Three.js) of an autonomous intersection that connects via WebSocket to a NestJS backend.
 
-First, run the development server:
+Built with Next.js (App Router, TypeScript, Tailwind) and configured for static export (`output: 'export'`) for deployment on S3 + CloudFront.
+
+## Getting started
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Scripts
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `npm run dev` — start the dev server
+- `npm run build` — build the static export (`out/`)
+- `npm run lint` — run ESLint
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Structure
 
-## Learn More
+- `app/` — Next.js routes (landing + `/demo`)
+- `components/three/` — React wrapper that mounts the Three.js demo
+- `three/` — Three.js scene, road, vehicles, net, modes and HUD (stubs pending implementation)
 
-To learn more about Next.js, take a look at the following resources:
+## Environment
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See `.env.example`. Requires `NEXT_PUBLIC_WS_URL` (WebSocket) and `NEXT_PUBLIC_API_URL`.
