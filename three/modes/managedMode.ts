@@ -175,7 +175,7 @@ export class ManagedMode implements SimulationMode {
       local.setState(rv.state);
       local.frozen = rv.frozen;
       local.crashed = rv.crashed;
-      if (prevState !== 'gone' && rv.state === 'gone') {
+      if (prevState !== 'success' && rv.state === 'success') {
         this.crossed += 1;
       }
     }

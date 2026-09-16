@@ -94,9 +94,11 @@ export class Vehicle {
         ? 0x38bdf8
         : this.state === 'crossing'
           ? 0x34d399
-          : this.state === 'queued'
-            ? 0xf87171
-            : 0x445266;
+          : this.state === 'success'
+            ? 0xfacc15
+            : this.state === 'queued'
+              ? 0xf87171
+              : 0x445266;
     }
     const beacon = this.mesh.userData.beacon as THREE.Mesh | undefined;
     if (beacon) {

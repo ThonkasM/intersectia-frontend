@@ -1,5 +1,5 @@
 export type Direction = 'N' | 'S' | 'E' | 'W';
-export type VehicleState = 'approach' | 'queued' | 'crossing' | 'gone';
+export type VehicleState = 'approach' | 'queued' | 'crossing' | 'success' | 'gone';
 export type SimMode = 'traditional' | 'managed' | 'managed-ai';
 export type DecisionEngine = 'fifo' | 'right-priority' | 'ai';
 
@@ -75,6 +75,7 @@ export const STATE_LABELS: Record<VehicleState, string> = {
   approach: 'Avanzando',
   queued: 'Espera',
   crossing: 'Cruzando',
+  success: 'Éxito',
   gone: '',
 };
 
