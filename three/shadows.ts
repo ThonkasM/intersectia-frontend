@@ -14,6 +14,13 @@ function apply(): void {
   const on = isShadowsOn();
   target.renderer.shadowMap.enabled = on;
   target.light.castShadow = on;
+  if (on) target.renderer.shadowMap.needsUpdate = true;
+}
+
+export function markShadowsDirty(): void {
+  if (target && target.renderer.shadowMap.enabled) {
+    target.renderer.shadowMap.needsUpdate = true;
+  }
 }
 
 export function registerShadows(

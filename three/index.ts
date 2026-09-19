@@ -16,7 +16,7 @@ import type { SimulationMode } from './modes/mode.interface';
 import { buildPedestrians, type PedestriansHandle } from './pedestrians';
 import { buildRoad } from './road';
 import { createScene } from './scene';
-import { registerShadows, unregisterShadows } from './shadows';
+import { markShadowsDirty, registerShadows, unregisterShadows } from './shadows';
 import { buildSky, type SkyHandle } from './sky';
 import { getSceneTheme, registerScene, unregisterScene } from './theme';
 import { initVehicleLighting } from './vehicleLights';
@@ -75,9 +75,27 @@ export function initDemo(container: HTMLElement, mode: SimulationMode): () => vo
       trees.dispose();
       trees = null;
     }
+    markShadowsDirty();
   };
   syncGraphics();
   const unsubGraphics = onGraphicsChange(syncGraphics);
+
+  const applySize = (): void => {
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    if (width <= 0 || height <= 0) return;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(width, height, false);
+    cameraRig.resize(width, height);
+    markShadowsDirty();
+  };
+  applySize();
+  const resizeObserver =
+    typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver(() => applySize())
+      : null;
+  resizeObserver?.observe(container);
+  window.addEventListener('resize', applySize);
 
   let raf = 0;
   let lastT = performance.now();
@@ -132,6 +150,8 @@ export function initDemo(container: HTMLElement, mode: SimulationMode): () => vo
     cancelAnimationFrame(raf);
     container.removeEventListener('pointerdown', onPointerDown);
     container.removeEventListener('click', onClick);
+    window.removeEventListener('resize', applySize);
+    resizeObserver?.disconnect();
     unsubGraphics();
     neighborhood?.dispose();
     neighborhood = null;
@@ -150,6 +170,7 @@ export function initDemo(container: HTMLElement, mode: SimulationMode): () => vo
     renderer.dispose();
     renderer.forceContextLoss();
     scene.traverse((obj) => {
+      if (obj.userData.shared) return;
       if (obj instanceof THREE.Mesh) {
         obj.geometry.dispose();
         const materials = Array.isArray(obj.material) ? obj.material : [obj.material];

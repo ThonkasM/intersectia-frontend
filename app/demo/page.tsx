@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import ThreeCanvas from '@/components/three/ThreeCanvas';
+import Compass from '@/components/three/Compass';
 import ThemeToggle from '@/components/theme/ThemeToggle';
 import { useTheme } from '@/components/theme/ThemeProvider';
 import { ENGINE_LABELS, STATE_LABELS, type SimMode } from '@/lib/constants';
@@ -439,6 +440,7 @@ export default function DemoPage() {
   return (
     <div className="relative h-screen w-full overflow-hidden bg-[#0a0e14]">
       <ThreeCanvas mode={mode} />
+      <Compass />
 
       <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between gap-4 p-4">
         <Link

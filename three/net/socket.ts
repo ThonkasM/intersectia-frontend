@@ -11,9 +11,31 @@ export type RemoteVehicleDto = {
   crashed: boolean;
 };
 
+const SESSION_STORAGE_KEY = 'intersectia-session';
+
+function resolveSessionId(): string {
+  if (typeof window === 'undefined') return 'server';
+  try {
+    let id = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (!id) {
+      const random =
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
+          ? crypto.randomUUID()
+          : Math.random().toString(36).slice(2);
+      id = random.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64) || 'anon';
+      window.sessionStorage.setItem(SESSION_STORAGE_KEY, id);
+    }
+    return id;
+  } catch {
+    return 'anon';
+  }
+}
+
 export class IntersectionSocket {
   private socket?: Socket;
   private mode: 'managed' | 'managed-ai' = 'managed';
+  private onConnect?: () => void;
+  readonly sessionId = resolveSessionId();
 
   constructor(private url = process.env.NEXT_PUBLIC_WS_URL ?? '') {}
 
@@ -23,15 +45,25 @@ export class IntersectionSocket {
       return;
     }
     if (this.socket?.connected) return;
-    const socket = io(this.url, { transports: ['websocket'] });
-    this.socket = socket;
-    socket.on('connect', () => {
-      this.setMode(this.mode);
+    const socket = io(this.url, {
+      transports: ['websocket'],
+      auth: { sessionId: this.sessionId },
     });
+    this.socket = socket;
+    this.onConnect = () => {
+      this.setMode(this.mode);
+    };
+    socket.on('connect', this.onConnect);
   }
 
   disconnect(): void {
+    if (this.socket && this.onConnect) {
+      this.socket.off('connect', this.onConnect);
+    }
+    this.socket?.removeAllListeners();
     this.socket?.disconnect();
+    this.socket = undefined;
+    this.onConnect = undefined;
   }
 
   setMode(mode: 'managed' | 'managed-ai'): void {

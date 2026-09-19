@@ -28,8 +28,8 @@ export const DIRECTION: Record<Direction, { dx: number; dz: number }> = {
 export const LANES: Record<Direction, [number, number]> = {
   N: [3.375, 1.125],
   S: [-3.375, -1.125],
-  E: [-3.375, -1.125],
-  W: [3.375, 1.125],
+  E: [3.375, 1.125],
+  W: [-3.375, -1.125],
 };
 
 export const LANE_COUNT = 2;

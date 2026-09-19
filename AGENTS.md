@@ -2,25 +2,65 @@
 
 ## Project
 
-IntersectIA is a landing page about IoT & Autonomous Vehicles plus a client-side 3D demo (Three.js) of an autonomous intersection. The frontend is built with Next.js configured with `output: 'export'` for static deployment on S3 + CloudFront. The Three.js demo renders vehicles whose positions are interpolated from messages received over a WebSocket connection to the NestJS backend. The simulation runs server-side; the frontend only renders.
+Next.js 16 (App Router) + React 19 + Tailwind v4 + TypeScript, built with `output: 'export'` for static S3 + CloudFront. Two surfaces: a Spanish marketing landing (`app/(marketing)`) and a full-screen interactive Three.js demo at `/demo`. The demo runs a local `traditional` mode and server-authoritative `managed` / `managed-ai` modes over **socket.io** (not raw WebSocket) to the NestJS backend. In managed modes the frontend never decides who crosses — it transcribes backend messages.
 
 ## Commands
 
 - `npm install` — install dependencies
 - `npm run dev` — start the dev server
-- `npm run build` — build the static export (`out/`)
-- `npm run lint` — run ESLint
+- `npm run build` — static export to `out/`; this is also the only typecheck
+- `npm run lint` — ESLint flat config (`eslint` with no args)
+- Verification: `npm run lint && npm run build`. There is **no test framework** in this repo — do not invent `npm test`.
 
-## Architectural conventions
+Gotcha: `npm run start` is defined in `package.json` but incompatible with `output: 'export'` (there is no server build). Serve `out/` with a static file server instead.
 
-- **Separate state from view**: `three/scene.ts`, `three/road.ts`, and `three/vehicle.ts` MUST NOT import from `three/modes/` or `three/net/`. Dependency flows one way: modes drive vehicles, net provides state.
-- **Always interpolate vehicle positions**: remote positions are set via `mesh.position.lerp(targetPos, ...)`, never assigned directly, so movement stays smooth regardless of WebSocket frequency (~20Hz).
-- **`initDemo(container, mode)` returns a `cleanup()` function** that cancels the RAF loop, disposes renderer/scene/materials/geometries, and removes the canvas. React `useEffect` MUST call it on unmount — critical to prevent WebGL context leaks ("too many WebGL contexts").
-- **Cap pixel ratio**: `renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))` — never raw `devicePixelRatio`.
-- **Never create `THREE.Geometry`/`Material` inside the render loop.**
-- **`SimulationMode` interface**: `{ start(): void; stop(): void; onFrame(dt: number): void }`. `traditionalMode` (local, priority-to-the-right rule, Art. 52 Bolivia) and `managedMode` (delegates to the backend via WebSocket) both implement it and are interchangeable without touching scene/road/vehicle.
-- **The frontend NEVER decides who crosses**: in managed mode it only transcribes backend messages to `targetPos`/`state`.
-- **HUD communicates with React via a bridge/subscription**, not direct DOM manipulation.
+## Environment
+
+`.env.local` (gitignored) holds `NEXT_PUBLIC_WS_URL` (socket.io URL, e.g. `http://localhost:3000`) and `NEXT_PUBLIC_API_URL` (REST: chat + metrics). See `.env.example`. Both are optional: code degrades gracefully (managed mode warns and stays disconnected without the WS URL).
+
+## Where things live
+
+- `app/` — routes. `(marketing)/layout.tsx` adds Navbar/Footer; `app/demo/page.tsx` is the interactive client page.
+- `components/` — React UI only (sections, Navbar/Footer, ThemeProvider/Toggle, ChatWidget, and `three/ThreeCanvas.tsx`).
+- `three/` — plain-TS engine, no React. Imported as `@/three`.
+- `lib/constants.ts` — shared types/constants (`SimMode`, `Direction`, `VehicleState`, `SIM`, `PLAYER`) used by both React and the engine.
+- Path alias `@/*` maps to the repo root.
+
+## Three.js engine contract
+
+- `three/index.ts` `initDemo(container, mode)` is the **only** entrypoint; it returns `cleanup()`. React must call it on unmount (`ThreeCanvas` does) — critical to avoid WebGL context leaks.
+- `SimulationMode` (`three/modes/mode.interface.ts`): `start(scene)`, `stop()`, `onFrame(dt)`, plus optional `getPlayerVehicle`, `pickAt`, `toggleVehicleFreeze`, `reset`, `setCollisions`. `TraditionalMode` and `ManagedMode` are **classes**; `ThreeCanvas` swaps them on `mode` change, which fully disposes and remounts the demo.
+- Engine-wide mutable singletons: `hudBridge` (`three/hud.ts`), active rig (`three/cameraRig.ts`), registered scene/materials (`three/theme.ts`), `activeMode` (`three/index.ts`). `initDemo`/`cleanup` register and clear them — never run two demos at once.
+- Always interpolate vehicles: `Vehicle.syncVisual(dt)` does `mesh.position.lerp(targetPos, ...)`. Never assign positions directly.
+- Never build geometries/materials in the render loop. `three/vehicle.ts` uses module-level shared geometries/materials; per-instance state lives in `group.userData` (`beaconMat`, `unregisterHeadlight`). Disposal skips meshes marked `userData.shared = true`, so mark shared resources and dispose per-instance materials explicitly.
+- Pixel ratio is capped in `three/scene.ts` (`Math.min(devicePixelRatio, 2)`) — keep it.
+- Shadows are static: `renderer.shadowMap.autoUpdate = false`. After rebuilding environment/pedestrians, call `markShadowsDirty()` from `three/shadows.ts` (done in `syncGraphics`).
+- `three/index.ts` handles **resize** via `ResizeObserver` + `window.resize` (renderer size, pixel ratio, `cameraRig.resize`); keep both in `cleanup()`.
+
+## Sessions and multiplayer
+
+- Each visitor gets an **isolated backend simulation**. `three/net/socket.ts` generates a `sessionId` (per-tab `sessionStorage`) and sends it in `io(url, { auth: { sessionId } })`. Do not remove this — without it every user shares one simulation.
+- `ManagedMode` must coalesce HUD publications (~10 Hz in `onFrame`), not publish on every socket event.
+
+## Docs
+
+- `docs/ARCHITECTURE.md` (layers, session, render loop) and `docs/PERFORMANCE.md` (applied fixes + pending optimizations like instancing/merge and limiting vehicle `PointLight`s).
+- Optional visuals (advanced graphics, ambient/lighting/shadows/pedestrians/trees) are module flags in `three/advancedGraphics.ts` with `onGraphicsChange` subscribers. Read them via `is*On()` accessors; `initDemo` builds/disposes their handles on change.
+- `three/collisions.ts`, `three/fps.ts`, `three/heading.ts`, `three/shadows.ts`, `three/vehicleLights.ts` are also module-level registries. The `CameraRig` publishes camera bearing to `three/heading.ts`; `Compass.tsx` subscribes to it (throttled by a 0.5° change threshold).
+
+## Demo / UI notes
+
+- Two independent theme systems: React `components/theme/ThemeProvider.tsx` toggles `light`/`dark` on `<html>`; `three/theme.ts` holds the scene palette. `app/demo/page.tsx` bridges them via `setSceneTheme`. Touch both when adding theme-dependent visuals.
+- `app/demo/page.tsx` is `"use client"` and defers mounting behind a rAF-set `mounted` flag to avoid WebGL/hydration mismatches. Keep that guard.
+- Transient 3D → React state flows through `hudBridge.subscribe`, never direct DOM manipulation.
+- Managed mode metrics come from `${NEXT_PUBLIC_API_URL}/metrics/avg?mode=` and `/metrics/summary`; `components/chat/ChatWidget.tsx` POSTs to `/ai/chat`.
+- UI copy is Spanish. Use the semantic Tailwind tokens defined in `app/globals.css` (`bg-overlay`, `bg-surface-strong`, `text-muted`, `text-faint`, `border-overlay-border`, `text-accent-text`) rather than raw palette colors.
+
+## Next.js 16 specifics
+
+- Typed routes are on: layouts/pages use generated global prop types like `LayoutProps<"/">` (see `app/layout.tsx`) — no import needed.
+- Import Three addons from `three/examples/jsm/...` (e.g. `OrbitControls`, `mergeGeometries`).
+- `next-env.d.ts` is generated and gitignored; do not edit it.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

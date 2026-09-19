@@ -40,6 +40,15 @@ export class TraditionalMode implements SimulationMode {
   }
 
   stop(): void {
+    for (const v of this.vehicles) {
+      this.scene?.remove(v.mesh);
+      this.disposeMesh(v.mesh);
+      this.bubbles?.remove(v.id);
+      this.lanes.delete(v);
+    }
+    this.vehicles = [];
+    this.queue = [];
+    this.occupants = [];
     this.bubbles?.clear();
     this.bubbles = undefined;
   }

@@ -19,6 +19,7 @@ import type { SimulationMode } from './mode.interface';
 
 const PLAYER_COLOR = 0x22d3ee;
 const MAX_DECISIONS = 8;
+const HUD_PUBLISH_INTERVAL = 0.1;
 
 export class ManagedMode implements SimulationMode {
   private vehicles = new Map<string, Vehicle>();
@@ -35,6 +36,8 @@ export class ManagedMode implements SimulationMode {
   private player: PlayerVehicle | null = null;
   private playerSeenOnce = false;
   private sendTimer = 0;
+  private publishTimer = 0;
+  private publishPending = false;
   private prevY = false;
   private prevX = false;
   private bubbles?: BubbleLayer;
@@ -130,6 +133,11 @@ export class ManagedMode implements SimulationMode {
       }
     }
     this.updateBubbles();
+    this.publishTimer += dt;
+    if (this.publishTimer >= HUD_PUBLISH_INTERVAL) {
+      this.publishTimer = 0;
+      this.flushPublish();
+    }
   }
 
   setCollisions(enabled: boolean): void {
@@ -143,13 +151,22 @@ export class ManagedMode implements SimulationMode {
   }
 
   private handleGamepad(connected: boolean): void {
-    if (connected && !this.player && this.scene) {
-      this.player = new PlayerVehicle('S', PLAYER_COLOR);
-      this.player.connected = true;
-      this.playerSeenOnce = false;
-      this.scene.add(this.player.vehicle.mesh);
-      this.vehicles.set(PLAYER.ID, this.player.vehicle);
-    } else if (!connected && this.player) {
+    if (connected) {
+      if (!this.player && this.scene) {
+        this.player = new PlayerVehicle('S', PLAYER_COLOR);
+        this.playerSeenOnce = false;
+        this.scene.add(this.player.vehicle.mesh);
+      }
+      if (this.player) {
+        this.player.connected = true;
+        const existing = this.vehicles.get(PLAYER.ID);
+        if (existing && existing !== this.player.vehicle) {
+          this.scene?.remove(existing.mesh);
+          this.disposeMesh(existing.mesh);
+        }
+        this.vehicles.set(PLAYER.ID, this.player.vehicle);
+      }
+    } else if (this.player) {
       this.player.connected = false;
     }
     this.publish();
@@ -322,6 +339,12 @@ export class ManagedMode implements SimulationMode {
   }
 
   private publish(): void {
+    this.publishPending = true;
+  }
+
+  private flushPublish(): void {
+    if (!this.publishPending) return;
+    this.publishPending = false;
     let waiting = 0;
     for (const v of this.vehicles.values()) {
       if (v.state === 'queued') waiting += 1;

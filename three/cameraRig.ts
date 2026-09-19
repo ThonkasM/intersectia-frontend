@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { DIRECTION } from '../lib/constants';
+import { publishHeading } from './heading';
 import type { Vehicle } from './vehicle';
 
 export type CameraMode = 'orbit' | 'firstPerson';
@@ -66,6 +67,7 @@ export class CameraRig {
   private follow: Vehicle | null = null;
   private currentLookAt: THREE.Vector3 | null = null;
   private returning = false;
+  private readonly forward = new THREE.Vector3();
 
   constructor(container: HTMLElement) {
     const aspect = container.clientWidth / container.clientHeight;
@@ -147,6 +149,7 @@ export class CameraRig {
       this.follow = getPlayer();
       if (this.follow) {
         this.followFirstPerson(this.follow);
+        this.publishCameraHeading();
         return;
       }
       // Se quedó sin vehículo a seguir: iniciar retorno suave en vez de snap.
@@ -159,6 +162,7 @@ export class CameraRig {
     }
 
     this.orbitControls.update();
+    this.publishCameraHeading();
   }
 
   private stepReturnToOrbit(): void {
@@ -185,6 +189,14 @@ export class CameraRig {
     current.x += (target.x - current.x) * t;
     current.y += (target.y - current.y) * t;
     current.z += (target.z - current.z) * t;
+  }
+
+  // Publica el rumbo de la cámara para la brújula: 0° = Norte (-Z), 90° = Este (+X).
+  private publishCameraHeading(): void {
+    this.mainCamera.getWorldDirection(this.forward);
+    const horizontal = Math.hypot(this.forward.x, this.forward.z);
+    if (horizontal < 1e-4) return; // vista casi cenital: el rumbo no está definido
+    publishHeading(THREE.MathUtils.radToDeg(Math.atan2(this.forward.x, -this.forward.z)));
   }
 
   // Vector "derecha" de la cámara principal proyectado al plano del suelo.
@@ -263,6 +275,12 @@ export class CameraRig {
     this.satelliteCamera.top = aheadSpan;
     this.satelliteCamera.bottom = -behindSpan;
     this.satelliteCamera.updateProjectionMatrix();
+  }
+
+  resize(width: number, height: number): void {
+    if (height <= 0) return;
+    this.mainCamera.aspect = width / height;
+    this.mainCamera.updateProjectionMatrix();
   }
 
   dispose(): void {

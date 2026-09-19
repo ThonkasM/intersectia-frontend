@@ -18,6 +18,10 @@ export function createScene(container: HTMLElement): {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.shadowMap.enabled = isShadowsOn();
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  // Las sombras se recalculan solo al cambiar la escena (marcar con markShadowsDirty),
+  // no en cada frame: el entorno es casi estático.
+  renderer.shadowMap.autoUpdate = false;
+  renderer.shadowMap.needsUpdate = true;
   container.appendChild(renderer.domElement);
 
   const ambient = new THREE.AmbientLight(0x2a3648, 1.1);
