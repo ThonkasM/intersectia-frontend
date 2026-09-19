@@ -59,23 +59,22 @@ const TAIL_MAT = new THREE.MeshStandardMaterial({
 });
 
 // Guiñadores (intermitentes): una tira por lado con la luz delantera y trasera
-// fusionadas; se muestran/ocultan alternando para parpadear.
-const INDICATOR_MAT = new THREE.MeshStandardMaterial({
-  color: 0x5a3b00,
-  roughness: 0.4,
-  emissive: 0xff9a1f,
-  emissiveIntensity: 1.9,
+// fusionadas; se muestran/ocultan alternando para parpadear. Material sin
+// iluminación (lámpara) para que se lea siempre, de día y de noche.
+const INDICATOR_MAT = new THREE.MeshBasicMaterial({
+  color: 0xffa21e,
+  toneMapped: false,
 });
 
 function buildSideIndicator(sign: number): THREE.BufferGeometry {
-  const front = new THREE.BoxGeometry(0.16, 0.12, 0.06);
-  front.translate(sign * 0.66, 0.62, 1.16);
-  const rear = new THREE.BoxGeometry(0.16, 0.12, 0.06);
-  rear.translate(sign * 0.66, 0.62, -1.16);
+  const front = new THREE.BoxGeometry(0.24, 0.16, 0.08);
+  front.translate(sign * 0.68, 0.62, 1.2);
+  const rear = new THREE.BoxGeometry(0.24, 0.16, 0.08);
+  rear.translate(sign * 0.68, 0.62, -1.2);
   const merged = mergeGeometries([front, rear], false);
   front.dispose();
   rear.dispose();
-  return merged ?? new THREE.BoxGeometry(0.16, 0.12, 0.06);
+  return merged ?? new THREE.BoxGeometry(0.24, 0.16, 0.08);
 }
 
 const INDICATOR_LEFT_GEO = buildSideIndicator(-1);

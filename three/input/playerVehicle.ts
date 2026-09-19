@@ -16,6 +16,36 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
+// Halo con degradado radial (se crea una vez y se comparte entre jugadores).
+let glowTexture: THREE.CanvasTexture | null = null;
+
+function getGlowTexture(): THREE.CanvasTexture {
+  if (glowTexture) return glowTexture;
+  const size = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    const g = ctx.createRadialGradient(
+      size / 2,
+      size / 2,
+      0,
+      size / 2,
+      size / 2,
+      size / 2,
+    );
+    g.addColorStop(0, 'rgba(34,211,238,0.95)');
+    g.addColorStop(0.45, 'rgba(34,211,238,0.35)');
+    g.addColorStop(1, 'rgba(34,211,238,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, size, size);
+  }
+  glowTexture = new THREE.CanvasTexture(canvas);
+  glowTexture.colorSpace = THREE.SRGBColorSpace;
+  return glowTexture;
+}
+
 export class PlayerVehicle {
   vehicle: Vehicle;
   speed = 0;
@@ -121,7 +151,7 @@ export class PlayerVehicle {
     const pulse = 0.5 + 0.5 * Math.sin(this.pulseTimer * 4);
     if (this.underglow) {
       const mat = this.underglow.material as THREE.MeshBasicMaterial;
-      mat.opacity = 0.22 + pulse * 0.3;
+      mat.opacity = 0.4 + pulse * 0.35;
     }
     if (this.beaconMat) {
       this.beaconMat.emissiveIntensity = 1.1 + pulse * 1.5;
@@ -201,14 +231,16 @@ export class PlayerVehicle {
   // Halo cian bajo el auto: lo hace muy visible en la vista orbital.
   private addUnderglow(): void {
     const glow = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.7, 3.0),
+      new THREE.PlaneGeometry(2.0, 3.4),
       new THREE.MeshBasicMaterial({
+        map: getGlowTexture(),
         color: 0x22d3ee,
         transparent: true,
-        opacity: 0.35,
+        opacity: 0.6,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
         side: THREE.DoubleSide,
+        toneMapped: false,
       })
     );
     glow.rotation.x = -Math.PI / 2;
