@@ -72,13 +72,6 @@ export const PLAYER = {
   LANE_CHANGE_COOLDOWN: 0.4,
 };
 
-// Flecha que indica el sentido de giro previsto (se usa en los globos).
-export function turnArrow(turn: Turn): string {
-  if (turn === 'right') return ' →';
-  if (turn === 'left') return ' ←';
-  return '';
-}
-
 export const STATE_LABELS: Record<VehicleState, string> = {
   approach: 'Avanzando',
   queued: 'Espera',

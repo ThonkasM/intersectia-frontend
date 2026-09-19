@@ -3,7 +3,6 @@ import {
   PLAYER,
   STATE_LABELS,
   VEHICLE_COLORS,
-  turnArrow,
   type DecisionEvent,
   type Direction,
   type VehicleState,
@@ -288,9 +287,10 @@ export class ManagedMode implements SimulationMode {
           : STATE_LABELS[v.state];
       this.bubbles.sync(
         id,
-        `${label}${turnArrow(v.turn)}`,
+        label,
         v.mesh.position.x,
-        v.mesh.position.z
+        v.mesh.position.z,
+        v.turn
       );
     }
   }

@@ -7,7 +7,6 @@ import {
   STATE_LABELS,
   VEHICLE_COLORS,
   laneOffset,
-  turnArrow,
   type Direction,
   type VehicleState,
 } from '../../lib/constants';
@@ -266,9 +265,10 @@ export class TraditionalMode implements SimulationMode {
           : STATE_LABELS[v.state];
       this.bubbles.sync(
         v.id,
-        `${label}${turnArrow(v.turn)}`,
+        label,
         v.mesh.position.x,
-        v.mesh.position.z
+        v.mesh.position.z,
+        v.turn
       );
     }
   }

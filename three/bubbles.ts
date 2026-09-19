@@ -1,12 +1,18 @@
 import * as THREE from 'three';
+import type { Turn } from '../lib/constants';
 import { BUBBLE_LAYER } from './cameraRig';
 
-const SPRITE_W = 140;
+const BODY_W = 140;
+const PAD = 20;
+const CANVAS_W = BODY_W + PAD * 2;
 const SPRITE_H = 56;
-const SPRITE_SCALE_X = 3.1;
-const SPRITE_SCALE_Y = (SPRITE_SCALE_X * SPRITE_H) / SPRITE_W;
-const BUBBLE_Y = 1.75;
 const TAIL_H = 10;
+const CANVAS_H = SPRITE_H + TAIL_H;
+const BODY_SCALE_X = 3.1;
+const SPRITE_SCALE_X = (BODY_SCALE_X * CANVAS_W) / BODY_W;
+const SPRITE_SCALE_Y = (SPRITE_SCALE_X * CANVAS_H) / CANVAS_W;
+const BUBBLE_Y = 1.75;
+const TAIL_H_PX = 10;
 
 const LABEL_STYLES: Record<string, { bg: string; border: string; text: string }> = {
   Avanzando: { bg: '#1e3a5f', border: '#60a5fa', text: '#dbeafe' },
@@ -18,18 +24,22 @@ const LABEL_STYLES: Record<string, { bg: string; border: string; text: string }>
 
 const textureCache = new Map<string, THREE.CanvasTexture>();
 
-export function getLabelTexture(label: string): THREE.CanvasTexture {
-  const cached = textureCache.get(label);
+export function getLabelTexture(
+  label: string,
+  turn: Turn = 'straight'
+): THREE.CanvasTexture {
+  const key = `${label}|${turn}`;
+  const cached = textureCache.get(key);
   if (cached) return cached;
-  const texture = buildLabelTexture(label);
-  textureCache.set(label, texture);
+  const texture = buildLabelTexture(label, turn);
+  textureCache.set(key, texture);
   return texture;
 }
 
-function buildLabelTexture(label: string): THREE.CanvasTexture {
+function buildLabelTexture(label: string, turn: Turn): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
-  canvas.width = SPRITE_W;
-  canvas.height = SPRITE_H + TAIL_H;
+  canvas.width = CANVAS_W;
+  canvas.height = CANVAS_H;
   const ctx = canvas.getContext('2d');
   if (!ctx) {
     throw new Error('[IntersectIA] Could not create 2D canvas context for label sprite');
@@ -37,22 +47,24 @@ function buildLabelTexture(label: string): THREE.CanvasTexture {
 
   const style = LABEL_STYLES[label] ?? LABEL_STYLES.Avanzando;
   const bodyH = SPRITE_H;
+  const bodyX = PAD;
+  const centerX = bodyX + BODY_W / 2;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   const radius = 16;
-  roundRect(ctx, 0, 0, SPRITE_W, bodyH, radius);
+  roundRect(ctx, bodyX, 0, BODY_W, bodyH, radius);
   ctx.fillStyle = style.bg;
   ctx.fill();
   ctx.lineWidth = 2.5;
   ctx.strokeStyle = style.border;
-  roundRect(ctx, 1.25, 1.25, SPRITE_W - 2.5, bodyH - 2.5, radius - 1);
+  roundRect(ctx, bodyX + 1.25, 1.25, BODY_W - 2.5, bodyH - 2.5, radius - 1);
   ctx.stroke();
 
   // cola del globo apuntando al vehículo
   ctx.beginPath();
-  ctx.moveTo(SPRITE_W / 2 - 9, bodyH - 1);
-  ctx.lineTo(SPRITE_W / 2, bodyH + TAIL_H);
-  ctx.lineTo(SPRITE_W / 2 + 9, bodyH - 1);
+  ctx.moveTo(centerX - 9, bodyH - 1);
+  ctx.lineTo(centerX, bodyH + TAIL_H_PX);
+  ctx.lineTo(centerX + 9, bodyH - 1);
   ctx.closePath();
   ctx.fillStyle = style.bg;
   ctx.fill();
@@ -64,13 +76,47 @@ function buildLabelTexture(label: string): THREE.CanvasTexture {
   ctx.font = 'bold 26px sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(label, SPRITE_W / 2, bodyH / 2 + 1);
+  ctx.fillText(label, centerX, bodyH / 2 + 1);
+
+  // Indicador de giro con su propio badge (círculo ámbar + chevron).
+  if (turn !== 'straight') {
+    drawTurnBadge(ctx, bodyX + BODY_W + 8, bodyH / 2, turn);
+  }
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.minFilter = THREE.LinearFilter;
   texture.magFilter = THREE.LinearFilter;
   return texture;
+}
+
+// Badge de giro: círculo ámbar con un chevron oscuro que apunta al lado del giro.
+function drawTurnBadge(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  turn: Turn
+): void {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, 11, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffa21e';
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#7a4a00';
+  ctx.stroke();
+
+  const dir = turn === 'right' ? 1 : -1;
+  ctx.strokeStyle = '#1a1205';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(cx - dir * 4, cy - 5);
+  ctx.lineTo(cx + dir * 3, cy);
+  ctx.lineTo(cx - dir * 4, cy + 5);
+  ctx.stroke();
+  ctx.restore();
 }
 
 function roundRect(
@@ -94,9 +140,12 @@ function roundRect(
   ctx.closePath();
 }
 
-export function createLabelSprite(label: string): THREE.Sprite {
+export function createLabelSprite(
+  label: string,
+  turn: Turn = 'straight'
+): THREE.Sprite {
   const material = new THREE.SpriteMaterial({
-    map: getLabelTexture(label),
+    map: getLabelTexture(label, turn),
     transparent: true,
     depthTest: false,
     depthWrite: false,
@@ -116,7 +165,13 @@ export class BubbleLayer {
     private labelsOn: () => boolean
   ) {}
 
-  sync(id: string, label: string, x: number, z: number): void {
+  sync(
+    id: string,
+    label: string,
+    x: number,
+    z: number,
+    turn: Turn = 'straight'
+  ): void {
     const sprite = this.getSprite(id);
     sprite.position.set(x, BUBBLE_Y, z);
     if (label === '') {
@@ -124,7 +179,7 @@ export class BubbleLayer {
       return;
     }
     const material = sprite.material as THREE.SpriteMaterial;
-    const texture = getLabelTexture(label);
+    const texture = getLabelTexture(label, turn);
     if (material.map !== texture) {
       material.map = texture;
       material.needsUpdate = true;
