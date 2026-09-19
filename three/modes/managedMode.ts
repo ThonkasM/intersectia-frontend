@@ -208,6 +208,7 @@ export class ManagedMode implements SimulationMode {
       local.setState(rv.state);
       local.frozen = rv.frozen;
       local.crashed = rv.crashed;
+      local.turn = rv.turn;
       if (prevState !== 'success' && rv.state === 'success') {
         this.crossed += 1;
       }
@@ -284,7 +285,8 @@ export class ManagedMode implements SimulationMode {
         : v.frozen
           ? 'Detenido'
           : STATE_LABELS[v.state];
-      this.bubbles.sync(id, label, v.mesh.position.x, v.mesh.position.z);
+      const arrow = v.turn === 'right' ? ' →' : v.turn === 'left' ? ' ←' : '';
+      this.bubbles.sync(id, `${label}${arrow}`, v.mesh.position.x, v.mesh.position.z);
     }
   }
 

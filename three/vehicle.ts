@@ -1,5 +1,12 @@
 import * as THREE from 'three';
-import { DIRECTION, SIM, type Direction, type VehicleState } from '../lib/constants';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import {
+  DIRECTION,
+  SIM,
+  type Direction,
+  type Turn,
+  type VehicleState,
+} from '../lib/constants';
 import { registerHeadlight } from './vehicleLights';
 
 // ---------- Recursos compartidos (se crean una vez; no se liberan por vehículo) ----------
@@ -51,6 +58,29 @@ const TAIL_MAT = new THREE.MeshStandardMaterial({
   emissiveIntensity: 0.8,
 });
 
+// Guiñadores (intermitentes): una tira por lado con la luz delantera y trasera
+// fusionadas; se muestran/ocultan alternando para parpadear.
+const INDICATOR_MAT = new THREE.MeshStandardMaterial({
+  color: 0x5a3b00,
+  roughness: 0.4,
+  emissive: 0xff9a1f,
+  emissiveIntensity: 1.9,
+});
+
+function buildSideIndicator(sign: number): THREE.BufferGeometry {
+  const front = new THREE.BoxGeometry(0.16, 0.12, 0.06);
+  front.translate(sign * 0.66, 0.62, 1.16);
+  const rear = new THREE.BoxGeometry(0.16, 0.12, 0.06);
+  rear.translate(sign * 0.66, 0.62, -1.16);
+  const merged = mergeGeometries([front, rear], false);
+  front.dispose();
+  rear.dispose();
+  return merged ?? new THREE.BoxGeometry(0.16, 0.12, 0.06);
+}
+
+const INDICATOR_LEFT_GEO = buildSideIndicator(-1);
+const INDICATOR_RIGHT_GEO = buildSideIndicator(1);
+
 function shortestAngle(current: number, target: number): number {
   let diff = (target - current) % (Math.PI * 2);
   if (diff > Math.PI) diff -= Math.PI * 2;
@@ -66,6 +96,7 @@ export class Vehicle {
   waitedSeconds = 0;
   frozen = false;
   crashed = false;
+  turn: Turn = 'straight';
   private blinkTimer = 0;
   targetPos: THREE.Vector3;
   mesh: THREE.Group;
@@ -120,6 +151,15 @@ export class Vehicle {
     if (beacon) {
       (beacon.material as THREE.MeshBasicMaterial).color.setHex(beaconColor);
     }
+
+    // Guiñador: parpadea en el lado del giro previsto (aproximación/cola/cruce).
+    this.blinkTimer += dt;
+    const blinkOn = Math.sin((this.blinkTimer * Math.PI * 2) / 0.7) > 0;
+    const turning = this.state !== 'gone' && this.turn !== 'straight';
+    const left = this.mesh.userData.leftIndicator as THREE.Mesh | undefined;
+    const right = this.mesh.userData.rightIndicator as THREE.Mesh | undefined;
+    if (left) left.visible = turning && this.turn === 'left' && blinkOn;
+    if (right) right.visible = turning && this.turn === 'right' && blinkOn;
   }
 }
 
@@ -172,6 +212,17 @@ function buildVehicleMesh(color: number): THREE.Group {
     group.add(tail);
   }
 
+  // Guiñadores izquierdo y derecho (geometría compartida, visibilidad alterna).
+  const leftIndicator = new THREE.Mesh(INDICATOR_LEFT_GEO, INDICATOR_MAT);
+  leftIndicator.visible = false;
+  leftIndicator.userData.shared = true;
+  group.add(leftIndicator);
+
+  const rightIndicator = new THREE.Mesh(INDICATOR_RIGHT_GEO, INDICATOR_MAT);
+  rightIndicator.visible = false;
+  rightIndicator.userData.shared = true;
+  group.add(rightIndicator);
+
   // Baliza de estado: geometría compartida, material propio (color dinámico).
   const beaconMat = new THREE.MeshBasicMaterial({ color: 0xf87171 });
   const beacon = new THREE.Mesh(BEACON_GEO, beaconMat);
@@ -181,5 +232,7 @@ function buildVehicleMesh(color: number): THREE.Group {
 
   group.userData.beacon = beacon;
   group.userData.beaconMat = beaconMat;
+  group.userData.leftIndicator = leftIndicator;
+  group.userData.rightIndicator = rightIndicator;
   return group;
 }

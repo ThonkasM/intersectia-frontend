@@ -1,5 +1,6 @@
 export type Direction = 'N' | 'S' | 'E' | 'W';
 export type VehicleState = 'approach' | 'queued' | 'crossing' | 'success' | 'gone';
+export type Turn = 'straight' | 'right' | 'left';
 export type SimMode = 'traditional' | 'managed' | 'managed-ai';
 export type DecisionEngine = 'fifo' | 'right-priority' | 'ai';
 

@@ -23,6 +23,9 @@ export class PlayerVehicle {
   connected = false;
   lane = 0;
   laneChangeCooldown = 0;
+  private underglow?: THREE.Mesh;
+  private beaconMat?: THREE.MeshStandardMaterial;
+  private pulseTimer = 0;
 
   constructor(from: Direction, color: number) {
     this.vehicle = new Vehicle(PLAYER.ID, from, color);
@@ -31,6 +34,8 @@ export class PlayerVehicle {
     this.vehicle.mesh.position.set(spawn.x, 0, spawn.z);
     this.addRoofBeacon();
     this.addArrowIndicator();
+    this.addSpoiler();
+    this.addUnderglow();
   }
 
   update(input: GamepadInput, dt: number): void {
@@ -111,6 +116,16 @@ export class PlayerVehicle {
 
   syncVisual(dt: number): void {
     this.vehicle.syncVisual(dt);
+    // Pulso del halo y la barra de techo para distinguir al jugador.
+    this.pulseTimer += dt;
+    const pulse = 0.5 + 0.5 * Math.sin(this.pulseTimer * 4);
+    if (this.underglow) {
+      const mat = this.underglow.material as THREE.MeshBasicMaterial;
+      mat.opacity = 0.22 + pulse * 0.3;
+    }
+    if (this.beaconMat) {
+      this.beaconMat.emissiveIntensity = 1.1 + pulse * 1.5;
+    }
   }
 
   setState(state: VehicleState): void {
@@ -151,15 +166,54 @@ export class PlayerVehicle {
   }
 
   private addRoofBeacon(): void {
+    this.beaconMat = new THREE.MeshStandardMaterial({
+      color: 0x22d3ee,
+      roughness: 0.3,
+      metalness: 0.1,
+      emissive: 0x22d3ee,
+      emissiveIntensity: 1.4,
+    });
     const beacon = new THREE.Mesh(
-      new THREE.BoxGeometry(0.55, 0.14, 0.24),
-      new THREE.MeshStandardMaterial({
+      new THREE.BoxGeometry(0.85, 0.16, 0.32),
+      this.beaconMat
+    );
+    beacon.position.y = 1.58;
+    this.vehicle.mesh.add(beacon);
+  }
+
+  // Alerón trasero: ayuda a reconocer al jugador de perfil y desde atrás.
+  private addSpoiler(): void {
+    const dark = new THREE.MeshStandardMaterial({
+      color: 0x11161d,
+      roughness: 0.4,
+      metalness: 0.3,
+    });
+    const wing = new THREE.Mesh(new THREE.BoxGeometry(1.45, 0.08, 0.38), dark);
+    wing.position.set(0, 1.08, -1.05);
+    this.vehicle.mesh.add(wing);
+    for (const sx of [-0.52, 0.52]) {
+      const support = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.3, 0.1), dark);
+      support.position.set(sx, 0.92, -1.05);
+      this.vehicle.mesh.add(support);
+    }
+  }
+
+  // Halo cian bajo el auto: lo hace muy visible en la vista orbital.
+  private addUnderglow(): void {
+    const glow = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.7, 3.0),
+      new THREE.MeshBasicMaterial({
         color: 0x22d3ee,
-        roughness: 0.4,
-        metalness: 0.1,
+        transparent: true,
+        opacity: 0.35,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.DoubleSide,
       })
     );
-    beacon.position.y = 1.55;
-    this.vehicle.mesh.add(beacon);
+    glow.rotation.x = -Math.PI / 2;
+    glow.position.y = 0.06;
+    this.underglow = glow;
+    this.vehicle.mesh.add(glow);
   }
 }

@@ -1,5 +1,10 @@
 import { io, type Socket } from 'socket.io-client';
-import type { DecisionEvent, Direction, VehicleState } from '../../lib/constants';
+import type {
+  DecisionEvent,
+  Direction,
+  Turn,
+  VehicleState,
+} from '../../lib/constants';
 
 export type RemoteVehicleDto = {
   id: string;
@@ -9,6 +14,7 @@ export type RemoteVehicleDto = {
   state: VehicleState;
   frozen: boolean;
   crashed: boolean;
+  turn: Turn;
 };
 
 const SESSION_STORAGE_KEY = 'intersectia-session';
