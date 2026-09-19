@@ -5,6 +5,9 @@ export type HudSnapshot = {
   crossed: number;
   waiting: number;
   avgWaitSeconds: number | null;
+  throughputPerMinute: number | null;
+  p95WaitSeconds: number | null;
+  fairnessGapSeconds: number | null;
   connected: boolean;
   gamepadConnected: boolean;
   playerAuthorized: boolean | null;

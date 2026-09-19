@@ -196,6 +196,9 @@ export default function DemoPage() {
     crossed: 0,
     waiting: 0,
     avgWaitSeconds: null,
+    throughputPerMinute: null,
+    p95WaitSeconds: null,
+    fairnessGapSeconds: null,
     connected: false,
     gamepadConnected: false,
     playerAuthorized: null,
@@ -560,6 +563,28 @@ export default function DemoPage() {
               <dt className="text-muted">Espera media</dt>
               <dd className="font-semibold text-foreground">
                 {hud.avgWaitSeconds === null ? '—' : `${hud.avgWaitSeconds.toFixed(2)}s`}
+              </dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-2">
+              <dt className="text-muted">Throughput</dt>
+              <dd className="font-semibold text-foreground">
+                {hud.throughputPerMinute === null
+                  ? '—'
+                  : `${hud.throughputPerMinute.toFixed(1)}/min`}
+              </dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-2">
+              <dt className="text-muted">p95 de espera</dt>
+              <dd className="font-semibold text-foreground">
+                {hud.p95WaitSeconds === null ? '—' : `${hud.p95WaitSeconds.toFixed(2)}s`}
+              </dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-2">
+              <dt className="text-muted">Equidad (brecha)</dt>
+              <dd className="font-semibold text-foreground">
+                {hud.fairnessGapSeconds === null
+                  ? '—'
+                  : `${hud.fairnessGapSeconds.toFixed(2)}s`}
               </dd>
             </div>
             {isManaged && (

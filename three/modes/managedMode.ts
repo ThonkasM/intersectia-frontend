@@ -28,6 +28,10 @@ export class ManagedMode implements SimulationMode {
   private connected = false;
   private crossed = 0;
   private avgWaitSeconds: number | null = null;
+  private throughputPerMinute: number | null = null;
+  private p95WaitSeconds: number | null = null;
+  private fairnessGapSeconds: number | null = null;
+  private metricsTimer?: ReturnType<typeof setInterval>;
   private violations = 0;
   private lastDecision: DecisionEvent | null = null;
   private decisions: DecisionEvent[] = [];
@@ -57,6 +61,8 @@ export class ManagedMode implements SimulationMode {
     this.socket.setTurns(isTurnsEnabled());
     this.fetchAvgWait();
     this.fetchSummary();
+    this.fetchNodeMetrics();
+    this.metricsTimer = setInterval(() => this.fetchNodeMetrics(), 5000);
 
     this.unsubscribers.push(
       this.socket.onStateUpdate((snapshot) => this.applySnapshot(snapshot))
@@ -86,6 +92,10 @@ export class ManagedMode implements SimulationMode {
   }
 
   stop(): void {
+    if (this.metricsTimer) {
+      clearInterval(this.metricsTimer);
+      this.metricsTimer = undefined;
+    }
     for (const unsub of this.unsubscribers) unsub();
     this.unsubscribers = [];
     this.gamepad.dispose();
@@ -360,6 +370,9 @@ export class ManagedMode implements SimulationMode {
       crossed: this.crossed,
       waiting,
       avgWaitSeconds: this.avgWaitSeconds,
+      throughputPerMinute: this.throughputPerMinute,
+      p95WaitSeconds: this.p95WaitSeconds,
+      fairnessGapSeconds: this.fairnessGapSeconds,
       connected: this.connected,
       gamepadConnected: this.gamepad.isConnected(),
       playerAuthorized: this.player ? this.player.authorized : null,
@@ -390,6 +403,32 @@ export class ManagedMode implements SimulationMode {
         this.avgWaitSeconds = avg;
         this.publish();
       }
+    } catch {
+      // best-effort: ignore network/metrics errors
+    }
+  }
+
+  private async fetchNodeMetrics(): Promise<void> {
+    const base = process.env.NEXT_PUBLIC_API_URL;
+    if (!base) return;
+    try {
+      const res = await fetch(`${base}/metrics/node?window=60`);
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        throughputPerMinute?: number;
+        p95WaitSeconds?: number | null;
+        fairnessGapSeconds?: number | null;
+      };
+      if (typeof data.throughputPerMinute === 'number') {
+        this.throughputPerMinute = data.throughputPerMinute;
+      }
+      if (typeof data.p95WaitSeconds === 'number') {
+        this.p95WaitSeconds = data.p95WaitSeconds;
+      }
+      if (typeof data.fairnessGapSeconds === 'number') {
+        this.fairnessGapSeconds = data.fairnessGapSeconds;
+      }
+      this.publish();
     } catch {
       // best-effort: ignore network/metrics errors
     }
