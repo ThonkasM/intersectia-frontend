@@ -19,7 +19,7 @@ import { createScene } from './scene';
 import { markShadowsDirty, registerShadows, unregisterShadows } from './shadows';
 import { buildSky, type SkyHandle } from './sky';
 import { getSceneTheme, registerScene, unregisterScene } from './theme';
-import { initVehicleLighting } from './vehicleLights';
+import { initVehicleLighting, updateHeadlights } from './vehicleLights';
 
 initVehicleLighting();
 
@@ -113,6 +113,8 @@ export function initDemo(container: HTMLElement, mode: SimulationMode): () => vo
     recordFrame();
     cameraRig.update(getPlayer);
     frame += 1;
+    // Las luces de vehiculo se reajustan cada 3 frames (no necesitan 60 Hz).
+    if (frame % 3 === 0) updateHeadlights(cameraRig.mainCamera.position);
 
     renderer.setScissorTest(false);
     renderer.setViewport(0, 0, container.clientWidth, container.clientHeight);
