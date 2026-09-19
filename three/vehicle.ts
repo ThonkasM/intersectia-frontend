@@ -51,6 +51,13 @@ const TAIL_MAT = new THREE.MeshStandardMaterial({
   emissiveIntensity: 0.8,
 });
 
+function shortestAngle(current: number, target: number): number {
+  let diff = (target - current) % (Math.PI * 2);
+  if (diff > Math.PI) diff -= Math.PI * 2;
+  if (diff < -Math.PI) diff += Math.PI * 2;
+  return diff;
+}
+
 export class Vehicle {
   id: string;
   from: Direction;
@@ -84,7 +91,16 @@ export class Vehicle {
   }
 
   syncVisual(dt: number): void {
+    const dx = this.targetPos.x - this.mesh.position.x;
+    const dz = this.targetPos.z - this.mesh.position.z;
     this.mesh.position.lerp(this.targetPos, Math.min(1, dt * 10));
+    // Orienta el vehiculo segun su direccion de avance: hace que gire de forma
+    // suave al tomar una curva en la interseccion.
+    if (dx * dx + dz * dz > 0.0004) {
+      const desired = Math.atan2(dx, dz);
+      this.mesh.rotation.y +=
+        shortestAngle(this.mesh.rotation.y, desired) * Math.min(1, dt * 6);
+    }
     let beaconColor: number;
     if (this.crashed) {
       this.blinkTimer += dt;
