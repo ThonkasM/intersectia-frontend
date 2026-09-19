@@ -5,6 +5,7 @@ El demo renderiza cientos de objetos (calzada, vecindario, árboles, cielo, peat
 ## Aplicadas
 
 - **Marcas de calzada fusionadas**: `road.ts` ya no crea ~120 dashes + ~28 franjas de cebra + 2 líneas centrales como meshes separados. Con `mergeGeometries` quedan **3 meshes** (líneas centrales, líneas discontinuas y cebras): de ~150 draw calls a 3.
+- **Vecindario/árboles/nubes fusionados por material**: casas (~60 → ~8, cuerpo por color + techo + puerta + ventanas), bancas (16 → 1), farolas (24 → 2, más 4 luces de esquina), árboles (24 → 2) y palmeras (16 → 2) en `advancedGraphics.ts`; las nubes pasan de **75 → 1** en `sky.ts`. Las sombras siguen funcionando (static + `castShadow` en los meshes fusionados).
 - **Minimapa cada 2 frames**: el segundo pase de render (minimapa) se hace en frames alternos, reduciendo a la mitad su costo en primera persona.
 - **Sin allocations por frame**: `CameraRig` reutiliza `Vector3` scratch (posición/lookAt de seguimiento, retorno a órbita, vector derecho) y el proveedor del jugador se crea una sola vez.
 - **Sombras estáticas**: `renderer.shadowMap.autoUpdate = false`. El shadow map solo se recalcula cuando cambia la escena (`markShadowsDirty()`), no en cada frame. El entorno es casi estático.
@@ -16,7 +17,7 @@ El demo renderiza cientos de objetos (calzada, vecindario, árboles, cielo, peat
 
 ## Pendientes (mejoras futuras)
 
-- **Draw calls**: instanciar el vecindario (casas, farolas, bancas), los árboles y las nubes con `InstancedMesh`/`mergeGeometries`. Puede eliminar ~250–350 draw calls por pase.
+- **Peatones/burbujas**: fusionar o instanciar los peatones y usar un atlas de sprites para las burbujas (draw calls restantes).
 - **Luces**: limitar las `PointLight` de vehículos a las N más cercanas a cámara o sustituirlas por emisivo. En noche con avanzado + luces hay hasta ~18 luces dinámicas.
 - **Minimapa**: evitar tocar `scene.fog` (usar capas de cámara) en lugar de guardarlo/restaurarlo.
 - **Atlas de sprites** para las burbujas de estado.

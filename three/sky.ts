@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { getSceneTheme, onThemeChange, type SceneTheme } from './theme';
 
 export interface SkyHandle {
@@ -61,44 +62,40 @@ function buildStars(): THREE.Points {
   return new THREE.Points(geo, mat);
 }
 
-function buildClouds(): THREE.Group {
-  const g = new THREE.Group();
+// Todas las nubes (15 x 5 bloques = 75) fusionadas en una sola geometría.
+function buildClouds(): THREE.Mesh | null {
   const cloudMat = new THREE.MeshBasicMaterial({
     color: 0xffffff,
     transparent: true,
     opacity: 0.92,
     fog: false,
   });
-  // Geometrías compartidas por tamaño de bloque (estilo Minecraft).
-  const blockGeo: Record<number, THREE.BoxGeometry> = {};
-  const geoFor = (s: number): THREE.BoxGeometry => {
-    if (!blockGeo[s]) blockGeo[s] = new THREE.BoxGeometry(s, s * 0.4, s);
-    return blockGeo[s];
-  };
   const spots: [number, number, number][] = [
     [150, 55, 0], [140, 50, 70], [100, 60, 130], [40, 62, 160],
     [-50, 58, 160], [-110, 55, 135], [-155, 50, 70], [-160, 52, 0],
     [-140, 58, -80], [-90, 64, -145], [-30, 60, -165], [45, 62, -155],
     [110, 56, -125], [160, 52, -55], [70, 65, 60],
   ];
+  const blocks: [number, number, number, number][] = [
+    [0, 0, 0, 14],
+    [16, 0, 4, 11],
+    [-16, 0, -3, 11],
+    [6, 5, -8, 11],
+    [-6, 5, 6, 10],
+  ];
+  const geos: THREE.BufferGeometry[] = [];
   for (const [cx, cy, cz] of spots) {
-    const cloud = new THREE.Group();
-    const blocks: [number, number, number, number][] = [
-      [0, 0, 0, 14],
-      [16, 0, 4, 11],
-      [-16, 0, -3, 11],
-      [6, 5, -8, 11],
-      [-6, 5, 6, 10],
-    ];
     for (const [bx, by, bz, s] of blocks) {
-      const block = new THREE.Mesh(geoFor(s), cloudMat);
-      block.position.set(bx, by, bz);
-      cloud.add(block);
+      const geo = new THREE.BoxGeometry(s, s * 0.4, s);
+      geo.translate(cx + bx, cy + by, cz + bz);
+      geos.push(geo);
     }
-    cloud.position.set(cx, cy, cz);
-    g.add(cloud);
   }
-  return g;
+  const merged = mergeGeometries(geos, false);
+  for (const geo of geos) geo.dispose();
+  if (!merged) return null;
+  merged.computeBoundingSphere();
+  return new THREE.Mesh(merged, cloudMat);
 }
 
 export function buildSky(scene: THREE.Scene): SkyHandle {
@@ -133,7 +130,7 @@ export function buildSky(scene: THREE.Scene): SkyHandle {
   group.add(stars);
 
   const clouds = buildClouds();
-  group.add(clouds);
+  if (clouds) group.add(clouds);
 
   // Leve iluminación de luna sobre el entorno (de noche).
   const moonlight = new THREE.DirectionalLight(0x8fa3cc, 0.15);
@@ -147,7 +144,7 @@ export function buildSky(scene: THREE.Scene): SkyHandle {
     mat.needsUpdate = true;
     const dark = theme === 'dark';
     sun.visible = !dark;
-    clouds.visible = !dark;
+    if (clouds) clouds.visible = !dark;
     moon.visible = dark;
     stars.visible = dark;
     moonlight.visible = dark;
