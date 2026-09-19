@@ -10,6 +10,7 @@ import {
 import { BubbleLayer } from '../bubbles';
 import { getActiveRig } from '../cameraRig';
 import { isCollisionsEnabled } from '../collisions';
+import { isTurnsEnabled } from '../turns';
 import { hudBridge } from '../hud';
 import { GamepadController } from '../input/gamepadController';
 import { PlayerVehicle } from '../input/playerVehicle';
@@ -53,6 +54,7 @@ export class ManagedMode implements SimulationMode {
     this.socket.connect();
     this.socket.setMode(this.mode);
     this.socket.setCollisions(isCollisionsEnabled());
+    this.socket.setTurns(isTurnsEnabled());
     this.fetchAvgWait();
     this.fetchSummary();
 
@@ -142,6 +144,10 @@ export class ManagedMode implements SimulationMode {
 
   setCollisions(enabled: boolean): void {
     this.socket.setCollisions(enabled);
+  }
+
+  setTurns(enabled: boolean): void {
+    this.socket.setTurns(enabled);
   }
 
   private toggleCameraMode(): void {

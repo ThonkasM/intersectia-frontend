@@ -117,4 +117,8 @@ export class IntersectionSocket {
   setCollisions(enabled: boolean): void {
     this.socket?.emit('setCollisions', { enabled });
   }
+
+  setTurns(enabled: boolean): void {
+    this.socket?.emit('setTurns', { enabled });
+  }
 }

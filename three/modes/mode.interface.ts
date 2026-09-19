@@ -10,5 +10,6 @@ export interface SimulationMode {
   toggleVehicleFreeze?(id: string): void;
   reset?(): void;
   setCollisions?(enabled: boolean): void;
+  setTurns?(enabled: boolean): void;
 }
 export type { SimMode } from '../../lib/constants';

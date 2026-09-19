@@ -25,6 +25,7 @@ import {
 } from '@/three/advancedGraphics';
 import { getActiveRig } from '@/three/cameraRig';
 import { setCollisionsState } from '@/three/collisions';
+import { setTurnsState } from '@/three/turns';
 import { onFps } from '@/three/fps';
 import { hudBridge, type HudSnapshot } from '@/three/hud';
 import { setSceneTheme } from '@/three/theme';
@@ -185,6 +186,7 @@ export default function DemoPage() {
   const [pedestrians, setPedestrians] = useState(isPedestriansOn());
   const [trees, setTrees] = useState(isTreesOn());
   const [collisions, setCollisions] = useState(false);
+  const [turns, setTurns] = useState(false);
   const [panelOpen, setPanelOpen] = useState(true);
   const [view, setView] = useState<PanelView>('menu');
   const [fps, setFps] = useState(0);
@@ -278,6 +280,13 @@ export default function DemoPage() {
     getActiveMode()?.setCollisions?.(next);
   };
 
+  const toggleTurns = () => {
+    const next = !turns;
+    setTurns(next);
+    setTurnsState(next);
+    getActiveMode()?.setTurns?.(next);
+  };
+
   const renderPanelBody = () => {
     if (view === 'menu') {
       return (
@@ -289,7 +298,7 @@ export default function DemoPage() {
           />
           <MenuRow
             label="Opciones"
-            hint={`Globos ${hud.labelsOn ? 'on' : 'off'} · Colisiones ${collisions ? 'on' : 'off'}`}
+            hint={`Globos ${hud.labelsOn ? 'on' : 'off'} · Colisiones ${collisions ? 'on' : 'off'} · Giros ${turns ? 'on' : 'off'}`}
             onClick={() => setView('opciones')}
           />
           <MenuRow
@@ -348,6 +357,12 @@ export default function DemoPage() {
             title="Si el jugador choca con un vehículo, ambos se detienen unos segundos y se recuperan"
             active={collisions}
             onToggle={toggleCollisions}
+          />
+          <ToggleRow
+            label="Activar giros"
+            title="Los vehículos giran a la izquierda o derecha (curvas dentro de la intersección). Fuera del alcance base, pero interesante."
+            active={turns}
+            onToggle={toggleTurns}
           />
           <ToggleRow
             label="Primera persona"
