@@ -68,6 +68,20 @@ export class CameraRig {
   private currentLookAt: THREE.Vector3 | null = null;
   private returning = false;
   private readonly forward = new THREE.Vector3();
+  // Vectores reutilizados para no asignar memoria en cada frame.
+  private readonly scratchPos = new THREE.Vector3();
+  private readonly scratchLook = new THREE.Vector3();
+  private readonly scratchOrbitPos = new THREE.Vector3(
+    ORBIT_POS.x,
+    ORBIT_POS.y,
+    ORBIT_POS.z,
+  );
+  private readonly scratchOrbitTarget = new THREE.Vector3(
+    ORBIT_TARGET.x,
+    ORBIT_TARGET.y,
+    ORBIT_TARGET.z,
+  );
+  private readonly scratchRight = new THREE.Vector3();
 
   constructor(container: HTMLElement) {
     const aspect = container.clientWidth / container.clientHeight;
@@ -166,13 +180,9 @@ export class CameraRig {
   }
 
   private stepReturnToOrbit(): void {
-    const targetPos = new THREE.Vector3(ORBIT_POS.x, ORBIT_POS.y, ORBIT_POS.z);
+    const targetPos = this.scratchOrbitPos;
     this.lerpVec3(this.mainCamera.position, targetPos, RETURN_LERP);
-    this.lerpVec3(
-      this.orbitControls.target,
-      new THREE.Vector3(ORBIT_TARGET.x, ORBIT_TARGET.y, ORBIT_TARGET.z),
-      RETURN_LERP,
-    );
+    this.lerpVec3(this.orbitControls.target, this.scratchOrbitTarget, RETURN_LERP);
 
     this.mainCamera.fov = THREE.MathUtils.lerp(this.mainCamera.fov, BASE_FOV, RETURN_LERP);
     this.mainCamera.updateProjectionMatrix();
@@ -202,7 +212,7 @@ export class CameraRig {
   // Vector "derecha" de la cámara principal proyectado al plano del suelo.
   getRightVector(): { x: number; z: number } {
     this.mainCamera.updateMatrixWorld();
-    const v = new THREE.Vector3().setFromMatrixColumn(
+    const v = this.scratchRight.setFromMatrixColumn(
       this.mainCamera.matrixWorld,
       0,
     );
@@ -228,12 +238,12 @@ export class CameraRig {
     const followBack = THREE.MathUtils.lerp(MIN_FOLLOW_BACK, MAX_FOLLOW_BACK, speedFactor);
     const lookAhead = THREE.MathUtils.lerp(MIN_LOOK_AHEAD, MAX_LOOK_AHEAD, speedFactor);
 
-    const desiredPos = new THREE.Vector3(
+    const desiredPos = this.scratchPos.set(
       pos.x - dir.dx * followBack,
       FOLLOW_HEIGHT,
       pos.z - dir.dz * followBack,
     );
-    const desiredLookAt = new THREE.Vector3(
+    const desiredLookAt = this.scratchLook.set(
       pos.x + dir.dx * lookAhead,
       1.2,
       pos.z + dir.dz * lookAhead,

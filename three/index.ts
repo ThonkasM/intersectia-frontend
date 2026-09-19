@@ -99,6 +99,10 @@ export function initDemo(container: HTMLElement, mode: SimulationMode): () => vo
 
   let raf = 0;
   let lastT = performance.now();
+  let frame = 0;
+  // El proveedor del jugador se crea una sola vez (antes se asignaba una closure por frame).
+  const getPlayer = (): ReturnType<NonNullable<SimulationMode['getPlayerVehicle']>> =>
+    mode.getPlayerVehicle?.() ?? null;
   function loop(): void {
     raf = requestAnimationFrame(loop);
     const now = performance.now();
@@ -107,13 +111,15 @@ export function initDemo(container: HTMLElement, mode: SimulationMode): () => vo
     mode.onFrame(dt);
     pedestrians?.update(dt);
     recordFrame();
-    cameraRig.update(() => mode.getPlayerVehicle?.() ?? null);
+    cameraRig.update(getPlayer);
+    frame += 1;
 
     renderer.setScissorTest(false);
     renderer.setViewport(0, 0, container.clientWidth, container.clientHeight);
     renderer.render(scene, cameraRig.mainCamera);
 
-    if (cameraRig.hasFollowTarget()) {
+    // El minimapa se renderiza en frames alternos: es un segundo pase completo.
+    if (cameraRig.hasFollowTarget() && frame % 2 === 0) {
       const { size, margin } = minimapRect;
       const fog = scene.fog;
       scene.fog = null;

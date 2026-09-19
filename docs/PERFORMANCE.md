@@ -4,6 +4,9 @@ El demo renderiza cientos de objetos (calzada, vecindario, árboles, cielo, peat
 
 ## Aplicadas
 
+- **Marcas de calzada fusionadas**: `road.ts` ya no crea ~120 dashes + ~28 franjas de cebra + 2 líneas centrales como meshes separados. Con `mergeGeometries` quedan **3 meshes** (líneas centrales, líneas discontinuas y cebras): de ~150 draw calls a 3.
+- **Minimapa cada 2 frames**: el segundo pase de render (minimapa) se hace en frames alternos, reduciendo a la mitad su costo en primera persona.
+- **Sin allocations por frame**: `CameraRig` reutiliza `Vector3` scratch (posición/lookAt de seguimiento, retorno a órbita, vector derecho) y el proveedor del jugador se crea una sola vez.
 - **Sombras estáticas**: `renderer.shadowMap.autoUpdate = false`. El shadow map solo se recalcula cuando cambia la escena (`markShadowsDirty()`), no en cada frame. El entorno es casi estático.
 - **Resize**: `ResizeObserver` + listener de `window` actualizan `renderer.setSize`, el pixel ratio y el `aspect` de la cámara principal. Antes el canvas quedaba con el tamaño inicial.
 - **Limpieza de recursos**: `cleanup()` y `disposeMesh()` respetan `userData.shared` y desregistran faros; `TraditionalMode.stop()` ahora recorre y libera vehículos y luces (antes dejaba `PointLight`s huérfanas).
@@ -13,10 +16,9 @@ El demo renderiza cientos de objetos (calzada, vecindario, árboles, cielo, peat
 
 ## Pendientes (mejoras futuras)
 
-- **Draw calls**: fusionar los ~128 dashes y las cebras de `road.ts` con `mergeGeometries`/`InstancedMesh`, e instanciar el vecindario (casas, farolas, bancas) y las nubes. Puede eliminar ~250–400 draw calls por pase.
+- **Draw calls**: instanciar el vecindario (casas, farolas, bancas), los árboles y las nubes con `InstancedMesh`/`mergeGeometries`. Puede eliminar ~250–350 draw calls por pase.
 - **Luces**: limitar las `PointLight` de vehículos a las N más cercanas a cámara o sustituirlas por emisivo. En noche con avanzado + luces hay hasta ~18 luces dinámicas.
-- **Minimapa**: renderizarlo cada 2–3 frames y sin tocar `scene.fog` (usar capas de cámara).
-- **Allocations por frame**: reutilizar `Vector3` scratch en `CameraRig`.
+- **Minimapa**: evitar tocar `scene.fog` (usar capas de cámara) en lugar de guardarlo/restaurarlo.
 - **Atlas de sprites** para las burbujas de estado.
 
 ## Reglas al tocar el 3D
