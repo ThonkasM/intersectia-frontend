@@ -263,13 +263,7 @@ export class TraditionalMode implements SimulationMode {
         : v.frozen
           ? 'Detenido'
           : STATE_LABELS[v.state];
-      this.bubbles.sync(
-        v.id,
-        label,
-        v.mesh.position.x,
-        v.mesh.position.z,
-        v.turn
-      );
+      this.bubbles.sync(v.id, label, v.mesh.position.x, v.mesh.position.z);
     }
   }
 

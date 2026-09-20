@@ -23,6 +23,14 @@ export const DIRECTION: Record<Direction, { dx: number; dz: number }> = {
   W: { dx: -1, dz: 0 },
 };
 
+// Direccion de salida por giro (espejo del backend, turn-path.ts).
+export const TURN_EXIT: Record<Direction, { right: Direction; left: Direction }> = {
+  N: { right: 'W', left: 'E' },
+  S: { right: 'E', left: 'W' },
+  E: { right: 'S', left: 'N' },
+  W: { right: 'N', left: 'S' },
+};
+
 // Dos carriles por sentido. Índice 0 = carril exterior (derecho, el de marcha normal),
 // índice 1 = carril interior (junto al separador central, de sobrepaso).
 // Para N/S el desvío es en x; para E/W es en z.

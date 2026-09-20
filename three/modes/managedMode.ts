@@ -1,13 +1,15 @@
 import * as THREE from 'three';
 import {
+  DIRECTION,
   PLAYER,
   STATE_LABELS,
+  TURN_EXIT,
   VEHICLE_COLORS,
   type DecisionEvent,
   type Direction,
   type VehicleState,
 } from '../../lib/constants';
-import { BubbleLayer } from '../bubbles';
+import { BubbleLayer, type ArrowSide } from '../bubbles';
 import { getActiveRig } from '../cameraRig';
 import { isCollisionsEnabled } from '../collisions';
 import { isTurnsEnabled } from '../turns';
@@ -46,6 +48,8 @@ export class ManagedMode implements SimulationMode {
   private prevY = false;
   private prevX = false;
   private bubbles?: BubbleLayer;
+  private readonly bubbleScratchA = new THREE.Vector3();
+  private readonly bubbleScratchB = new THREE.Vector3();
 
   constructor(
     private socket: IntersectionSocket,
@@ -290,9 +294,33 @@ export class ManagedMode implements SimulationMode {
         label,
         v.mesh.position.x,
         v.mesh.position.z,
-        v.turn
+        this.bubbleSide(v)
       );
     }
+  }
+
+  // Lado del giro tal como se ve en pantalla (para que la flecha coincida con
+  // la curva visible). Si no hay cámara o el giro es casi frontal, usa la
+  // semántica del conductor (derecha/izquierda).
+  private bubbleSide(v: Vehicle): ArrowSide {
+    if (v.turn === 'straight') return 'none';
+    const semantic: ArrowSide = v.turn === 'right' ? 'right' : 'left';
+    const camera = getActiveRig()?.mainCamera;
+    if (!camera) return semantic;
+    const forward = DIRECTION[v.from];
+    const exit = DIRECTION[TURN_EXIT[v.from][v.turn]];
+    const scale = 8;
+    const x = v.mesh.position.x;
+    const z = v.mesh.position.z;
+    const pe = this.bubbleScratchA
+      .set(x + exit.dx * scale, 1.7, z + exit.dz * scale)
+      .project(camera);
+    const pf = this.bubbleScratchB
+      .set(x + forward.dx * scale, 1.7, z + forward.dz * scale)
+      .project(camera);
+    const delta = pe.x - pf.x;
+    if (Math.abs(delta) < 0.03) return semantic;
+    return delta > 0 ? 'right' : 'left';
   }
 
   pickAt(camera: THREE.Camera, ndcX: number, ndcY: number): string | null {

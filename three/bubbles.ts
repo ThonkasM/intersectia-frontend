@@ -1,6 +1,8 @@
 import * as THREE from 'three';
-import type { Turn } from '../lib/constants';
 import { BUBBLE_LAYER } from './cameraRig';
+
+// Lado del giro tal como se ve en pantalla (no la semantica del conductor).
+export type ArrowSide = 'none' | 'left' | 'right';
 
 const BODY_W = 140;
 const PAD = 20;
@@ -26,17 +28,17 @@ const textureCache = new Map<string, THREE.CanvasTexture>();
 
 export function getLabelTexture(
   label: string,
-  turn: Turn = 'straight'
+  side: ArrowSide = 'none'
 ): THREE.CanvasTexture {
-  const key = `${label}|${turn}`;
+  const key = `${label}|${side}`;
   const cached = textureCache.get(key);
   if (cached) return cached;
-  const texture = buildLabelTexture(label, turn);
+  const texture = buildLabelTexture(label, side);
   textureCache.set(key, texture);
   return texture;
 }
 
-function buildLabelTexture(label: string, turn: Turn): THREE.CanvasTexture {
+function buildLabelTexture(label: string, side: ArrowSide): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
   canvas.width = CANVAS_W;
   canvas.height = CANVAS_H;
@@ -79,8 +81,8 @@ function buildLabelTexture(label: string, turn: Turn): THREE.CanvasTexture {
   ctx.fillText(label, centerX, bodyH / 2 + 1);
 
   // Indicador de giro con su propio badge (círculo ámbar + chevron).
-  if (turn !== 'straight') {
-    drawTurnBadge(ctx, bodyX + BODY_W + 8, bodyH / 2, turn);
+  if (side !== 'none') {
+    drawTurnBadge(ctx, bodyX + BODY_W + 8, bodyH / 2, side);
   }
 
   const texture = new THREE.CanvasTexture(canvas);
@@ -95,7 +97,7 @@ function drawTurnBadge(
   ctx: CanvasRenderingContext2D,
   cx: number,
   cy: number,
-  turn: Turn
+  side: ArrowSide
 ): void {
   ctx.save();
   ctx.beginPath();
@@ -106,7 +108,7 @@ function drawTurnBadge(
   ctx.strokeStyle = '#7a4a00';
   ctx.stroke();
 
-  const dir = turn === 'right' ? 1 : -1;
+  const dir = side === 'right' ? 1 : -1;
   ctx.strokeStyle = '#1a1205';
   ctx.lineWidth = 3;
   ctx.lineCap = 'round';
@@ -142,10 +144,10 @@ function roundRect(
 
 export function createLabelSprite(
   label: string,
-  turn: Turn = 'straight'
+  side: ArrowSide = 'none'
 ): THREE.Sprite {
   const material = new THREE.SpriteMaterial({
-    map: getLabelTexture(label, turn),
+    map: getLabelTexture(label, side),
     transparent: true,
     depthTest: false,
     depthWrite: false,
@@ -170,7 +172,7 @@ export class BubbleLayer {
     label: string,
     x: number,
     z: number,
-    turn: Turn = 'straight'
+    side: ArrowSide = 'none'
   ): void {
     const sprite = this.getSprite(id);
     sprite.position.set(x, BUBBLE_Y, z);
@@ -179,7 +181,7 @@ export class BubbleLayer {
       return;
     }
     const material = sprite.material as THREE.SpriteMaterial;
-    const texture = getLabelTexture(label, turn);
+    const texture = getLabelTexture(label, side);
     if (material.map !== texture) {
       material.map = texture;
       material.needsUpdate = true;
