@@ -24,9 +24,10 @@ export const DIRECTION: Record<Direction, { dx: number; dz: number }> = {
 };
 
 // Direccion de salida por giro (espejo del backend, turn-path.ts).
+// 'right' es la derecha real del conductor (nariz +z, arriba +y -> derecha -x).
 export const TURN_EXIT: Record<Direction, { right: Direction; left: Direction }> = {
-  N: { right: 'W', left: 'E' },
-  S: { right: 'E', left: 'W' },
+  N: { right: 'E', left: 'W' },
+  S: { right: 'W', left: 'E' },
   E: { right: 'S', left: 'N' },
   W: { right: 'N', left: 'S' },
 };

@@ -77,8 +77,10 @@ function buildSideIndicator(sign: number): THREE.BufferGeometry {
   return merged ?? new THREE.BoxGeometry(0.24, 0.16, 0.08);
 }
 
-const INDICATOR_LEFT_GEO = buildSideIndicator(-1);
-const INDICATOR_RIGHT_GEO = buildSideIndicator(1);
+// La nariz del auto es local +z y arriba +y: el lado derecho del conductor es
+// local -x. El guiñador "derecho" va en -x y el "izquierdo" en +x.
+const INDICATOR_RIGHT_GEO = buildSideIndicator(-1);
+const INDICATOR_LEFT_GEO = buildSideIndicator(1);
 
 function shortestAngle(current: number, target: number): number {
   let diff = (target - current) % (Math.PI * 2);
