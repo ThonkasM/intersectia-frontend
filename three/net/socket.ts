@@ -46,12 +46,16 @@ export class IntersectionSocket {
   constructor(private url = process.env.NEXT_PUBLIC_WS_URL ?? '') {}
 
   connect(): void {
-    if (!this.url) {
+    // Si no hay URL configurada, usa el mismo origen (nginx hace de proxy a /socket.io).
+    const url =
+      this.url ||
+      (typeof window !== 'undefined' ? window.location.origin : '');
+    if (!url) {
       console.warn('[IntersectIA] No NEXT_PUBLIC_WS_URL configured; skipping socket connection.');
       return;
     }
     if (this.socket?.connected) return;
-    const socket = io(this.url, {
+    const socket = io(url, {
       transports: ['websocket'],
       auth: { sessionId: this.sessionId },
     });

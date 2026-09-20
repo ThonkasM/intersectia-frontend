@@ -401,8 +401,7 @@ export class ManagedMode implements SimulationMode {
   }
 
   private async fetchAvgWait(): Promise<void> {
-    const base = process.env.NEXT_PUBLIC_API_URL;
-    if (!base) return;
+    const base = process.env.NEXT_PUBLIC_API_URL ?? '';
     try {
       const res = await fetch(`${base}/metrics/avg?mode=${this.mode}`);
       if (!res.ok) return;
@@ -418,8 +417,7 @@ export class ManagedMode implements SimulationMode {
   }
 
   private async fetchNodeMetrics(): Promise<void> {
-    const base = process.env.NEXT_PUBLIC_API_URL;
-    if (!base) return;
+    const base = process.env.NEXT_PUBLIC_API_URL ?? '';
     try {
       const res = await fetch(`${base}/metrics/node?window=60`);
       if (!res.ok) return;
@@ -444,8 +442,7 @@ export class ManagedMode implements SimulationMode {
   }
 
   private async fetchSummary(): Promise<void> {
-    const base = process.env.NEXT_PUBLIC_API_URL;
-    if (!base) return;
+    const base = process.env.NEXT_PUBLIC_API_URL ?? '';
     try {
       const res = await fetch(`${base}/metrics/summary`);
       if (!res.ok) return;
