@@ -25,4 +25,4 @@ npm run dev
 
 ## Environment
 
-See `.env.example`. Requires `NEXT_PUBLIC_WS_URL` (WebSocket) and `NEXT_PUBLIC_API_URL`.
+See `.env.example`. `NEXT_PUBLIC_WS_URL` (WebSocket) and `NEXT_PUBLIC_API_URL` (REST) are **optional**: if unset, the app uses the **same origin** (`window.location.origin`), que es lo que se usa al desplegar con nginx haciendo de proxy (Docker/EC2). En local conviene definirlas apuntando al backend.
