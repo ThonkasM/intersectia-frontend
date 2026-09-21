@@ -12,7 +12,7 @@ export default function CTADemo() {
         </p>
         <div className="mt-8">
           <Button href="/demo" variant="primary" size="lg">
-            Abrir demostración
+            Abrir Demo
           </Button>
         </div>
       </div>

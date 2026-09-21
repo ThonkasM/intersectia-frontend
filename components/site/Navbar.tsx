@@ -48,7 +48,7 @@ export default function Navbar() {
         <div className="flex items-center gap-3">
           <ThemeToggle />
           <Button href="/demo" variant="primary" size="md">
-            Abrir demostración
+            Abrir Demo
           </Button>
         </div>
       </div>

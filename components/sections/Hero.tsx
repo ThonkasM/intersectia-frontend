@@ -25,7 +25,7 @@ export default function Hero() {
         </p>
         <div className="mt-10 flex flex-wrap items-center gap-4">
           <Button href="/demo" variant="primary" size="lg">
-            Abrir demostración
+            Abrir Demo
           </Button>
           <Button href="#caso" variant="outline" size="lg">
             Ver caso de estudio
