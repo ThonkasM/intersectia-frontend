@@ -1,31 +1,34 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useChat } from "@/hooks/useChat";
+import { CHAT_SESSION_KEY, resolveSessionId } from "@/lib/chat/session";
+import type { ChatMessage } from "@/lib/chat/types";
 
-type ChatMessage = { role: "user" | "assistant"; text: string };
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
 
-const STORAGE_KEY = "intersectia-chat-session";
+const INITIAL_MESSAGES: ChatMessage[] = [
+  {
+    role: "assistant",
+    text: "¡Hola! Soy el asistente de IntersectIA. Preguntame sobre IoT, vehículos autónomos o la demo.",
+  },
+];
 
 function getOrCreateSessionId(): string {
   if (typeof window === "undefined") return "";
-  const existing = window.localStorage.getItem(STORAGE_KEY);
-  if (existing) return existing;
-  const id = crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
-  window.localStorage.setItem(STORAGE_KEY, id);
-  return id;
+  return resolveSessionId(window.localStorage, CHAT_SESSION_KEY);
 }
 
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      role: "assistant",
-      text: "¡Hola! Soy el asistente de IntersectIA. Preguntame sobre IoT, vehículos autónomos o la demo.",
-    },
-  ]);
-  const [sessionId] = useState<string>(getOrCreateSessionId);
+  const [sessionId] = useState(getOrCreateSessionId);
+  const { messages, topics, loading, send } = useChat({
+    baseUrl: API_BASE,
+    sessionId,
+    initialMessages: INITIAL_MESSAGES,
+    loadTopics: open,
+  });
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -35,42 +38,14 @@ export default function ChatWidget() {
     });
   }, [messages, loading, open]);
 
-  async function send() {
-    const text = input.trim();
+  function submit(value: string) {
+    const text = value.trim();
     if (!text || loading) return;
     setInput("");
-    setMessages((prev) => [...prev, { role: "user", text }]);
-    setLoading(true);
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? ""}/ai/chat`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: text, sessionId }),
-        },
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as { answer?: string };
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          text: data.answer ?? "Sin respuesta.",
-        },
-      ]);
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          text: "No pude contactar al asistente. Asegúrate de que el backend esté corriendo.",
-        },
-      ]);
-    } finally {
-      setLoading(false);
-    }
+    void send(text);
   }
+
+  const suggestions = messages.length <= 1 ? topics.slice(0, 6) : [];
 
   return (
     <>
@@ -135,12 +110,27 @@ export default function ChatWidget() {
             )}
           </div>
 
+          {suggestions.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto border-t border-border px-3 py-2">
+              {suggestions.map((topic) => (
+                <button
+                  key={topic.slug}
+                  type="button"
+                  onClick={() => submit(topic.titulo)}
+                  className="shrink-0 rounded-full border border-border bg-surface px-3 py-1 text-xs text-muted transition-colors hover:border-amber-400/40 hover:text-foreground"
+                >
+                  {topic.titulo}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className="flex items-center gap-2 border-t border-border p-3">
             <input
               value={input}
               onChange={(event) => setInput(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === "Enter") void send();
+                if (event.key === "Enter") submit(input);
               }}
               placeholder="Escribí tu pregunta…"
               aria-label="Mensaje"
@@ -148,7 +138,7 @@ export default function ChatWidget() {
             />
             <button
               type="button"
-              onClick={() => void send()}
+              onClick={() => submit(input)}
               aria-label="Enviar mensaje"
               className="rounded-lg bg-amber-500 p-2 text-black transition-colors hover:bg-amber-400"
             >

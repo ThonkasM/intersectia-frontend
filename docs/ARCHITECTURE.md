@@ -26,7 +26,7 @@ Next.js 16 (App Router) + Three.js, con export estático (`output: 'export'`). L
 - `state` (20 Hz) → `ManagedMode.applySnapshot` fija `targetPos`/estado; el `lerp` suaviza.
 - `decision` → alimenta el HUD.
 - `playerState` a ~15 Hz desde el gamepad.
-- Chat: `POST {NEXT_PUBLIC_API_URL}/ai/chat`.
+- Chat: `lib/chat/` (cliente y sesión agnósticos, reutilizables en Expo/React Native) y `hooks/useChat`; `components/chat/ChatWidget` hace `POST {NEXT_PUBLIC_API_URL}/ai/chat` y consume `GET /ai/chat/topics`.
 
 ## Variables de entorno
 
