@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useChat } from "@/hooks/useChat";
+import TopicsSheet from "@/components/chat/TopicsSheet";
 import { CHAT_SESSION_KEY, resolveSessionId } from "@/lib/chat/session";
 import type { ChatMessage } from "@/lib/chat/types";
 
@@ -21,6 +22,7 @@ function getOrCreateSessionId(): string {
 
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
+  const [showTopics, setShowTopics] = useState(false);
   const [input, setInput] = useState("");
   const [sessionId] = useState(getOrCreateSessionId);
   const { messages, topics, loading, send } = useChat({
@@ -45,8 +47,6 @@ export default function ChatWidget() {
     void send(text);
   }
 
-  const suggestions = messages.length <= 1 ? topics.slice(0, 6) : [];
-
   return (
     <>
       {open && (
@@ -60,26 +60,39 @@ export default function ChatWidget() {
                 IoT · Vehículos autónomos · Demo
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              aria-label="Cerrar chat"
-              className="rounded-full p-1 text-muted transition-colors hover:bg-surface-strong hover:text-foreground"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setShowTopics(true)}
+                aria-label="Ver temas"
+                className="rounded-full px-3 py-1 text-xs font-medium text-muted transition-colors hover:bg-surface-strong hover:text-foreground"
               >
-                <path d="M18 6 6 18" />
-                <path d="m6 6 12 12" />
-              </svg>
-            </button>
+                Temas
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  setShowTopics(false);
+                }}
+                aria-label="Cerrar chat"
+                className="rounded-full p-1 text-muted transition-colors hover:bg-surface-strong hover:text-foreground"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M18 6 6 18" />
+                  <path d="m6 6 12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           <div
@@ -109,21 +122,6 @@ export default function ChatWidget() {
               </div>
             )}
           </div>
-
-          {suggestions.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto border-t border-border px-3 py-2">
-              {suggestions.map((topic) => (
-                <button
-                  key={topic.slug}
-                  type="button"
-                  onClick={() => submit(topic.titulo)}
-                  className="shrink-0 rounded-full border border-border bg-surface px-3 py-1 text-xs text-muted transition-colors hover:border-amber-400/40 hover:text-foreground"
-                >
-                  {topic.titulo}
-                </button>
-              ))}
-            </div>
-          )}
 
           <div className="flex items-center gap-2 border-t border-border p-3">
             <input
@@ -157,12 +155,26 @@ export default function ChatWidget() {
               </svg>
             </button>
           </div>
+
+          {showTopics && (
+            <TopicsSheet
+              topics={topics}
+              onSelect={(titulo) => {
+                setShowTopics(false);
+                submit(titulo);
+              }}
+              onClose={() => setShowTopics(false)}
+            />
+          )}
         </div>
       )}
 
       <button
         type="button"
-        onClick={() => setOpen((prev) => !prev)}
+        onClick={() => {
+          setOpen((prev) => !prev);
+          setShowTopics(false);
+        }}
         aria-label={open ? "Cerrar chat" : "Abrir chat"}
         className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-amber-500 text-black shadow-lg transition-transform hover:scale-105 hover:bg-amber-400"
       >

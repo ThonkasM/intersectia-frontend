@@ -4,6 +4,7 @@ import VehiculosAutonomos from "@/components/sections/VehiculosAutonomos";
 import RelacionIoTAV from "@/components/sections/RelacionIoTAV";
 import CasoDeEstudio from "@/components/sections/CasoDeEstudio";
 import ComoFuncionaLaDemo from "@/components/sections/ComoFuncionaLaDemo";
+import Teoria from "@/components/sections/Teoria";
 import CTADemo from "@/components/sections/CTADemo";
 import Equipo from "@/components/sections/Equipo";
 import ChatWidget from "@/components/chat/ChatWidget";
@@ -17,6 +18,7 @@ export default function Home() {
       <RelacionIoTAV />
       <CasoDeEstudio />
       <ComoFuncionaLaDemo />
+      <Teoria />
       <CTADemo />
       <Equipo />
       <ChatWidget />

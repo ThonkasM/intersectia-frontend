@@ -5,6 +5,7 @@ const links = [
   { href: "#iot", label: "IoT" },
   { href: "#autonomos", label: "Autónomos" },
   { href: "#relacion", label: "Relación" },
+  { href: "#teoria", label: "Teoría" },
   { href: "#caso", label: "Caso de estudio" },
   { href: "#demo", label: "Demo" },
 ];
