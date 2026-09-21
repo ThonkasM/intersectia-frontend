@@ -15,15 +15,15 @@ export default function MemberAvatar({
   const [loaded, setLoaded] = useState(false);
 
   return (
-    <span className="relative flex size-16 items-center justify-center overflow-hidden rounded-full border border-amber-400/30 bg-amber-400/10 font-mono text-sm text-accent-text">
+    <span className="relative flex size-24 items-center justify-center overflow-hidden rounded-full border border-amber-400/30 bg-amber-400/10 font-mono text-base text-accent-text lg:size-28">
       {!loaded && initials}
       <Image
         src={src}
         alt={alt}
-        width={64}
-        height={64}
+        width={112}
+        height={112}
         onLoad={() => setLoaded(true)}
-        className={`absolute inset-0 size-16 object-cover transition-opacity ${
+        className={`absolute inset-0 size-full object-cover transition-opacity ${
           loaded ? "opacity-100" : "opacity-0"
         }`}
       />
