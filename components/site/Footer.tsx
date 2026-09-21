@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 const footerLinks = [
   { href: "#iot", label: "IoT" },
   { href: "#autonomos", label: "Autónomos" },
@@ -11,7 +13,14 @@ export default function Footer() {
     <footer className="border-t border-border py-10">
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="font-semibold text-foreground">
+          <p className="flex items-center gap-2 font-semibold text-foreground">
+            <Image
+              src="/intersectia-mark.png"
+              alt=""
+              width={24}
+              height={24}
+              className="size-6"
+            />
             Intersect<span className="text-accent">IA</span>
           </p>
           <p className="mt-1 text-sm text-muted">

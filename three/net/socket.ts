@@ -3,6 +3,7 @@ import type {
   DecisionEvent,
   Direction,
   Turn,
+  VehicleKind,
   VehicleState,
 } from '../../lib/constants';
 
@@ -15,6 +16,7 @@ export type RemoteVehicleDto = {
   frozen: boolean;
   crashed: boolean;
   turn: Turn;
+  kind: VehicleKind;
 };
 
 const SESSION_STORAGE_KEY = 'intersectia-session';

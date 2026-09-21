@@ -15,10 +15,28 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const TITLE = "IntersectIA — IoT y Vehículos Autónomos";
+const DESCRIPTION =
+  "IntersectIA es una demo en vivo de cómo el IoT hace las intersecciones más seguras y eficientes: un nodo IoT central decide quién cruza, en tiempo real.";
+
 export const metadata: Metadata = {
-  title: "IntersectIA — IoT y Vehículos Autónomos",
-  description:
-    "IntersectIA es una demo en vivo de cómo el IoT hace las intersecciones más seguras y eficientes: un nodo IoT central decide quién cruza, en tiempo real.",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
+  ),
+  title: TITLE,
+  description: DESCRIPTION,
+  openGraph: {
+    type: "website",
+    locale: "es_AR",
+    siteName: "IntersectIA",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

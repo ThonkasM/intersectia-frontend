@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {
+  AMBULANCE_CHANCE,
   DIRECTION,
   MIN_FOLLOW_DISTANCE,
   MIN_STOP_DISTANCE,
@@ -8,6 +9,7 @@ import {
   VEHICLE_COLORS,
   laneOffset,
   type Direction,
+  type VehicleKind,
   type VehicleState,
 } from '../../lib/constants';
 import { BubbleLayer } from '../bubbles';
@@ -74,8 +76,15 @@ export class TraditionalMode implements SimulationMode {
 
     const from = this.randomDirection();
     const lane = Math.random() < 0.5 ? 0 : 1;
+    const kind: VehicleKind =
+      Math.random() < AMBULANCE_CHANCE ? 'ambulance' : 'car';
     const spawn = this.spawnPosition(from, lane);
-    const vehicle = new Vehicle(this.nextId.toString(), from, this.colorFor(this.nextId));
+    const vehicle = new Vehicle(
+      this.nextId.toString(),
+      from,
+      this.colorFor(this.nextId),
+      kind,
+    );
     this.nextId += 1;
     vehicle.setTarget(spawn.x, spawn.z);
     vehicle.mesh.position.set(spawn.x, 0, spawn.z);
@@ -305,6 +314,10 @@ export class TraditionalMode implements SimulationMode {
         obj.dispose();
       }
     });
+    const owned = group.userData.ownedMaterials as
+      | THREE.Material[]
+      | undefined;
+    if (owned) for (const material of owned) material.dispose();
     (group.userData.beaconMat as THREE.Material | undefined)?.dispose();
   }
 

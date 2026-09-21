@@ -33,15 +33,16 @@ export function createScene(container: HTMLElement): {
   sunLight.target.position.set(0, 0, 0);
   scene.add(sunLight.target);
   sunLight.castShadow = isShadowsOn();
-  sunLight.shadow.mapSize.set(1024, 1024);
-  sunLight.shadow.bias = -0.0005;
+  sunLight.shadow.mapSize.set(2048, 2048);
+  sunLight.shadow.bias = -0.0002;
+  sunLight.shadow.normalBias = 0.02;
   const d = 70;
   sunLight.shadow.camera.left = -d;
   sunLight.shadow.camera.right = d;
   sunLight.shadow.camera.top = d;
   sunLight.shadow.camera.bottom = -d;
   sunLight.shadow.camera.near = 1;
-  sunLight.shadow.camera.far = 220;
+  sunLight.shadow.camera.far = 400;
   sunLight.shadow.camera.updateProjectionMatrix();
   scene.add(sunLight);
 

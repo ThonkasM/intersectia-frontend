@@ -187,7 +187,13 @@ export default function DemoPage() {
   const [trees, setTrees] = useState(isTreesOn());
   const [collisions, setCollisions] = useState(false);
   const [turns, setTurns] = useState(false);
-  const [panelOpen, setPanelOpen] = useState(true);
+  // En móvil el panel arranca cerrado para no tapar la escena (el primer render
+  // es la pantalla de carga, así que no hay mismatch de hidratación).
+  const [panelOpen, setPanelOpen] = useState(
+    () =>
+      typeof window === 'undefined' ||
+      !window.matchMedia('(max-width: 639px)').matches,
+  );
   const [view, setView] = useState<PanelView>('menu');
   const [fps, setFps] = useState(0);
   useEffect(() => onFps(setFps), []);
@@ -290,6 +296,101 @@ export default function DemoPage() {
     getActiveMode()?.setTurns?.(next);
   };
 
+  const renderMetricsList = () => (
+    <dl className="space-y-1">
+      <div className="flex items-baseline justify-between gap-2">
+        <dt className="text-muted">Cruzados</dt>
+        <dd className="font-semibold text-foreground">{hud.crossed}</dd>
+      </div>
+      <div className="flex items-baseline justify-between gap-2">
+        <dt className="text-muted">En espera</dt>
+        <dd className="font-semibold text-foreground">{hud.waiting}</dd>
+      </div>
+      <div className="flex items-baseline justify-between gap-2">
+        <dt className="text-muted">En cola</dt>
+        <dd className="font-semibold text-foreground">{hud.queueLength}</dd>
+      </div>
+      <div className="flex items-baseline justify-between gap-2">
+        <dt className="text-muted">Violaciones</dt>
+        <dd className="font-semibold text-foreground">{hud.violations}</dd>
+      </div>
+      <div className="flex items-baseline justify-between gap-2">
+        <dt className="text-muted">Espera media</dt>
+        <dd className="font-semibold text-foreground">
+          {hud.avgWaitSeconds === null ? '—' : `${hud.avgWaitSeconds.toFixed(2)}s`}
+        </dd>
+      </div>
+      <div className="flex items-baseline justify-between gap-2">
+        <dt className="text-muted">Throughput</dt>
+        <dd className="font-semibold text-foreground">
+          {hud.throughputPerMinute === null
+            ? '—'
+            : `${hud.throughputPerMinute.toFixed(1)}/min`}
+        </dd>
+      </div>
+      <div className="flex items-baseline justify-between gap-2">
+        <dt className="text-muted">p95 de espera</dt>
+        <dd className="font-semibold text-foreground">
+          {hud.p95WaitSeconds === null ? '—' : `${hud.p95WaitSeconds.toFixed(2)}s`}
+        </dd>
+      </div>
+      <div className="flex items-baseline justify-between gap-2">
+        <dt className="text-muted">Equidad (brecha)</dt>
+        <dd className="font-semibold text-foreground">
+          {hud.fairnessGapSeconds === null
+            ? '—'
+            : `${hud.fairnessGapSeconds.toFixed(2)}s`}
+        </dd>
+      </div>
+      {isManaged && (
+        <div className="flex items-center justify-between gap-2 border-t border-overlay-border/70 pt-1">
+          <dt className="flex items-center gap-2 text-muted">
+            <span
+              className={`h-2 w-2 rounded-full ${
+                hud.connected ? 'bg-emerald-400' : 'bg-red-500'
+              }`}
+            />
+            Backend
+          </dt>
+          <dd className="text-muted">{hud.connected ? 'conectado' : 'desconectado'}</dd>
+        </div>
+      )}
+      {isManaged && hud.gamepadConnected && !effectiveFirstPerson && (
+        <div className="space-y-1 border-t border-overlay-border/70 pt-1">
+          <div className="flex items-baseline justify-between gap-2">
+            <dt className="text-muted">Jugador · carril {hud.playerLane}</dt>
+            <dd className="font-mono font-semibold text-foreground">
+              {hud.playerSpeed.toFixed(1)} u/s
+            </dd>
+          </div>
+          <div className="flex items-baseline justify-between gap-2">
+            <dt className="text-muted">Estado</dt>
+            <dd className="font-semibold text-accent-text">
+              {hud.playerState ? STATE_LABELS[hud.playerState] : '—'}
+            </dd>
+          </div>
+        </div>
+      )}
+    </dl>
+  );
+
+  const renderDecisionsList = () =>
+    hud.decisions.length === 0 ? (
+      <p className="text-faint">Sin decisiones aún</p>
+    ) : (
+      <ul className="space-y-1">
+        {hud.decisions.slice(0, 8).map((d) => (
+          <li key={`${d.vehicleId}-${d.at}`} className="truncate">
+            <span className="font-medium text-accent-text">{ENGINE_LABELS[d.engine]}</span>
+            <span className="text-muted">
+              {' '}
+              · vehículo {d.from} · {d.waitSeconds}s
+            </span>
+          </li>
+        ))}
+      </ul>
+    );
+
   const renderPanelBody = () => {
     if (view === 'menu') {
       return (
@@ -314,6 +415,24 @@ export default function DemoPage() {
             hint={theme === 'light' ? 'Tema claro' : 'Tema oscuro'}
             onClick={() => setView('apariencia')}
           />
+          <div className="sm:hidden">
+            <MenuRow
+              label="Métricas"
+              hint={`Cruzados ${hud.crossed} · En espera ${hud.waiting}`}
+              onClick={() => setView('metricas')}
+            />
+          </div>
+          <div className="sm:hidden">
+            <MenuRow
+              label="Decisiones"
+              hint={
+                hud.decisions.length > 0
+                  ? `${hud.decisions.length} recientes`
+                  : 'Sin decisiones aún'
+              }
+              onClick={() => setView('decisiones')}
+            />
+          </div>
         </div>
       );
     }
@@ -444,6 +563,14 @@ export default function DemoPage() {
       );
     }
 
+    if (view === 'metricas') {
+      return <div className="p-3 text-xs text-muted">{renderMetricsList()}</div>;
+    }
+
+    if (view === 'decisiones') {
+      return <div className="p-3 text-xs text-muted">{renderDecisionsList()}</div>;
+    }
+
     return null;
   };
 
@@ -536,87 +663,13 @@ export default function DemoPage() {
 
       {/* Métricas abajo a la derecha. En primera persona el minimapa ya muestra
           estado, velocidad y carril del jugador, así que ese bloque se omite. */}
-      <div className="pointer-events-none absolute bottom-4 right-4 z-10 flex w-72 max-w-[calc(100vw-1.5rem)] flex-col gap-2">
-
+      {/* Métricas (solo escritorio; en móvil se ven dentro del panel). */}
+      <div className="pointer-events-none absolute bottom-4 right-4 z-10 hidden w-72 max-w-[calc(100vw-1.5rem)] flex-col gap-2 sm:flex">
         <div className="pointer-events-auto rounded-xl border border-overlay-border bg-overlay p-3 text-xs text-muted backdrop-blur">
           <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted">
             Métricas
           </p>
-          <dl className="space-y-1">
-            <div className="flex items-baseline justify-between gap-2">
-              <dt className="text-muted">Cruzados</dt>
-              <dd className="font-semibold text-foreground">{hud.crossed}</dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-2">
-              <dt className="text-muted">En espera</dt>
-              <dd className="font-semibold text-foreground">{hud.waiting}</dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-2">
-              <dt className="text-muted">En cola</dt>
-              <dd className="font-semibold text-foreground">{hud.queueLength}</dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-2">
-              <dt className="text-muted">Violaciones</dt>
-              <dd className="font-semibold text-foreground">{hud.violations}</dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-2">
-              <dt className="text-muted">Espera media</dt>
-              <dd className="font-semibold text-foreground">
-                {hud.avgWaitSeconds === null ? '—' : `${hud.avgWaitSeconds.toFixed(2)}s`}
-              </dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-2">
-              <dt className="text-muted">Throughput</dt>
-              <dd className="font-semibold text-foreground">
-                {hud.throughputPerMinute === null
-                  ? '—'
-                  : `${hud.throughputPerMinute.toFixed(1)}/min`}
-              </dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-2">
-              <dt className="text-muted">p95 de espera</dt>
-              <dd className="font-semibold text-foreground">
-                {hud.p95WaitSeconds === null ? '—' : `${hud.p95WaitSeconds.toFixed(2)}s`}
-              </dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-2">
-              <dt className="text-muted">Equidad (brecha)</dt>
-              <dd className="font-semibold text-foreground">
-                {hud.fairnessGapSeconds === null
-                  ? '—'
-                  : `${hud.fairnessGapSeconds.toFixed(2)}s`}
-              </dd>
-            </div>
-            {isManaged && (
-              <div className="flex items-center justify-between gap-2 border-t border-overlay-border/70 pt-1">
-                <dt className="flex items-center gap-2 text-muted">
-                  <span
-                    className={`h-2 w-2 rounded-full ${
-                      hud.connected ? 'bg-emerald-400' : 'bg-red-500'
-                    }`}
-                  />
-                  Backend
-                </dt>
-                <dd className="text-muted">{hud.connected ? 'conectado' : 'desconectado'}</dd>
-              </div>
-            )}
-            {isManaged && hud.gamepadConnected && !effectiveFirstPerson && (
-              <div className="space-y-1 border-t border-overlay-border/70 pt-1">
-                <div className="flex items-baseline justify-between gap-2">
-                  <dt className="text-muted">Jugador · carril {hud.playerLane}</dt>
-                  <dd className="font-mono font-semibold text-foreground">
-                    {hud.playerSpeed.toFixed(1)} u/s
-                  </dd>
-                </div>
-                <div className="flex items-baseline justify-between gap-2">
-                  <dt className="text-muted">Estado</dt>
-                  <dd className="font-semibold text-accent-text">
-                    {hud.playerState ? STATE_LABELS[hud.playerState] : '—'}
-                  </dd>
-                </div>
-              </div>
-            )}
-          </dl>
+          {renderMetricsList()}
         </div>
       </div>
 
@@ -624,7 +677,7 @@ export default function DemoPage() {
       {panelOpen && (
         <aside
           id="demo-panel"
-          className="absolute bottom-[16rem] right-3 top-20 z-20 flex w-72 max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-2xl border border-overlay-border bg-overlay shadow-2xl backdrop-blur"
+          className="absolute bottom-3 left-3 right-3 top-16 z-20 flex flex-col overflow-hidden rounded-2xl border border-overlay-border bg-overlay shadow-2xl backdrop-blur sm:bottom-[16rem] sm:left-auto sm:right-3 sm:top-20 sm:w-72"
         >
           <header className="flex items-center gap-2 border-b border-overlay-border/70 px-3 py-2.5">
             {view !== 'menu' && (
@@ -798,34 +851,48 @@ export default function DemoPage() {
         </>
       )}
 
-      {/* Decisiones: panel centrado en la parte inferior */}
+      {/* Decisiones (solo escritorio; en móvil se ven dentro del panel). */}
       <div
-        className={`pointer-events-auto absolute bottom-4 left-1/2 z-10 w-96 max-w-[calc(100vw-1.5rem)] -translate-x-1/2 overflow-y-auto rounded-xl border border-overlay-border bg-overlay p-3 text-xs text-muted backdrop-blur ${
+        className={`pointer-events-auto absolute bottom-4 left-1/2 z-10 hidden w-96 max-w-[calc(100vw-1.5rem)] -translate-x-1/2 overflow-y-auto rounded-xl border border-overlay-border bg-overlay p-3 text-xs text-muted backdrop-blur sm:block ${
           effectiveFirstPerson ? 'max-h-32' : 'max-h-48'
         }`}
       >
         <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-accent-text">
           Decisiones
         </p>
-        {hud.decisions.length === 0 ? (
-          <p className="text-faint">Sin decisiones aún</p>
-        ) : (
-          <ul className="space-y-1">
-            {hud.decisions.slice(0, 8).map((d) => (
-              <li key={`${d.vehicleId}-${d.at}`} className="truncate">
-                <span className="font-medium text-accent-text">{ENGINE_LABELS[d.engine]}</span>
-                <span className="text-muted">
-                  {' '}
-                  · vehículo {d.from} · {d.waitSeconds}s
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
+        {renderDecisionsList()}
       </div>
 
+      {/* Barra de estado compacta (solo móvil). */}
       {!effectiveFirstPerson && (
-        <p className="pointer-events-none absolute bottom-4 left-4 text-xs text-faint">
+        <div className="pointer-events-none absolute inset-x-3 bottom-3 z-10 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-xl border border-overlay-border bg-overlay px-3 py-1.5 text-[11px] text-muted backdrop-blur sm:hidden">
+          <span className="font-mono text-foreground">{fps} fps</span>
+          <span className="h-3 w-px bg-white/20" />
+          <span>
+            Cruzados <b className="font-semibold text-foreground">{hud.crossed}</b>
+          </span>
+          <span className="h-3 w-px bg-white/20" />
+          <span>
+            En espera <b className="font-semibold text-foreground">{hud.waiting}</b>
+          </span>
+          {isManaged && (
+            <>
+              <span className="h-3 w-px bg-white/20" />
+              <span className="flex items-center gap-1.5">
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    hud.connected ? 'bg-emerald-400' : 'bg-red-500'
+                  }`}
+                />
+                {hud.connected ? 'conectado' : 'sin backend'}
+              </span>
+            </>
+          )}
+        </div>
+      )}
+
+      {!effectiveFirstPerson && (
+        <p className="pointer-events-none absolute bottom-4 left-4 hidden text-xs text-faint sm:block">
           Arrastra para orbitar · Rueda para zoom · Clic en un vehículo para detenerlo/reanudarlo
         </p>
       )}

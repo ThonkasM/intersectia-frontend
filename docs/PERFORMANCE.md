@@ -7,7 +7,8 @@ El demo renderiza cientos de objetos (calzada, vecindario, árboles, cielo, peat
 - **Marcas de calzada fusionadas**: `road.ts` ya no crea ~120 dashes + ~28 franjas de cebra + 2 líneas centrales como meshes separados. Con `mergeGeometries` quedan **3 meshes** (líneas centrales, líneas discontinuas y cebras): de ~150 draw calls a 3.
 - **Vecindario/árboles/nubes fusionados por material**: casas (~60 → ~8, cuerpo por color + techo + puerta + ventanas), bancas (16 → 1), farolas (24 → 2, más 4 luces de esquina), árboles (24 → 2) y palmeras (16 → 2) en `advancedGraphics.ts`; las nubes pasan de **75 → 1** en `sky.ts`. Las sombras siguen funcionando (static + `castShadow` en los meshes fusionados).
 - **Minimapa cada 2 frames**: el segundo pase de render (minimapa) se hace en frames alternos, reduciendo a la mitad su costo en primera persona.
-- **Luces de vehículo limitadas**: solo los **6 faros más cercanos** a la cámara encienden su `PointLight` (`updateHeadlights`, reevaluado cada 3 frames); el resto conserva el brillo emisivo. De noche con avanzado + luces se pasa de hasta ~18 luces dinámicas a ~6 + las 4 de esquina.
+- **Minimapa sin recompilar shaders**: el pase del minimapa ya no asigna/restaura `scene.fog` (cambiar su presencia recompilaba los shaders); ahora solo se amplía `fog.near`/`fog.far` durante el pase y se restauran.
+- **Luces de vehículo con pool fijo**: `vehicleLights.ts` crea **6 `PointLight`** una sola vez y las reasigna a los faros más cercanos (`updateHeadlights`, cada 3 frames) con histéresis. No se ocultan/muestran luces por frame (conteo constante = sin recompilar shaders ni parpadeo); el resto de los vehículos conserva el brillo emisivo. De noche con avanzado + luces se pasa de hasta ~18 luces dinámicas a 6 + las 4 de esquina.
 - **Sin allocations por frame**: `CameraRig` reutiliza `Vector3` scratch (posición/lookAt de seguimiento, retorno a órbita, vector derecho) y el proveedor del jugador se crea una sola vez.
 - **Sombras estáticas**: `renderer.shadowMap.autoUpdate = false`. El shadow map solo se recalcula cuando cambia la escena (`markShadowsDirty()`), no en cada frame. El entorno es casi estático.
 - **Resize**: `ResizeObserver` + listener de `window` actualizan `renderer.setSize`, el pixel ratio y el `aspect` de la cámara principal. Antes el canvas quedaba con el tamaño inicial.
@@ -20,7 +21,6 @@ El demo renderiza cientos de objetos (calzada, vecindario, árboles, cielo, peat
 
 - **Peatones/burbujas**: fusionar o instanciar los peatones y usar un atlas de sprites para las burbujas (draw calls restantes).
 - **Red**: enviar deltas del `state` en vez del snapshot completo a 20 Hz.
-- **Minimapa**: evitar tocar `scene.fog` (usar capas de cámara) en lugar de guardarlo/restaurarlo.
 - **Atlas de sprites** para las burbujas de estado.
 
 ## Reglas al tocar el 3D

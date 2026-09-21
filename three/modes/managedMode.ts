@@ -5,6 +5,7 @@ import {
   VEHICLE_COLORS,
   type DecisionEvent,
   type Direction,
+  type VehicleKind,
   type VehicleState,
 } from '../../lib/constants';
 import { BubbleLayer } from '../bubbles';
@@ -202,7 +203,7 @@ export class ManagedMode implements SimulationMode {
         }
         continue;
       }
-      const local = this.vehicles.get(rv.id) ?? this.createLocal(rv.id, rv.from, rv.x, rv.z);
+      const local = this.vehicles.get(rv.id) ?? this.createLocal(rv.id, rv.from, rv.x, rv.z, rv.kind);
       const prevState: VehicleState = local.state;
       local.setTarget(rv.x, rv.z);
       local.setState(rv.state);
@@ -259,8 +260,14 @@ export class ManagedMode implements SimulationMode {
     this.vehicles.set(PLAYER.ID, this.player.vehicle);
   }
 
-  private createLocal(id: string, from: Direction, x: number, z: number): Vehicle {
-    const v = new Vehicle(id, from, this.vehicleColor(this.nextId));
+  private createLocal(
+    id: string,
+    from: Direction,
+    x: number,
+    z: number,
+    kind: VehicleKind = 'car',
+  ): Vehicle {
+    const v = new Vehicle(id, from, this.vehicleColor(this.nextId), kind);
     this.nextId += 1;
     v.setTarget(x, z);
     v.mesh.position.set(x, 0, z);
@@ -360,6 +367,10 @@ export class ManagedMode implements SimulationMode {
         obj.dispose();
       }
     });
+    const owned = group.userData.ownedMaterials as
+      | THREE.Material[]
+      | undefined;
+    if (owned) for (const material of owned) material.dispose();
     (group.userData.beaconMat as THREE.Material | undefined)?.dispose();
   }
 

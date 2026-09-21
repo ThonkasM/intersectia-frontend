@@ -87,7 +87,7 @@ export class CameraRig {
     const aspect = container.clientWidth / container.clientHeight;
     this.zoomLevels = this.buildZoomLevels();
 
-    this.mainCamera = new THREE.PerspectiveCamera(BASE_FOV, aspect, 0.1, 500);
+    this.mainCamera = new THREE.PerspectiveCamera(BASE_FOV, aspect, 0.5, 500);
     this.mainCamera.position.set(ORBIT_POS.x, ORBIT_POS.y, ORBIT_POS.z);
     this.mainCamera.layers.enable(BUBBLE_LAYER);
 

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Button from "@/components/ui/Button";
 import ThemeToggle from "@/components/theme/ThemeToggle";
 
@@ -12,13 +13,14 @@ const links = [
 
 function Logo() {
   return (
-    <span
-      aria-hidden
-      className="relative block size-8 rotate-45 rounded-md border border-amber-400/40 bg-amber-400/10"
-    >
-      <span className="absolute left-1/2 top-1/2 h-3.5 w-0.5 -translate-x-1/2 -translate-y-1/2 -rotate-45 rounded-full bg-amber-400" />
-      <span className="absolute left-1/2 top-1/2 h-0.5 w-3.5 -translate-x-1/2 -translate-y-1/2 -rotate-45 rounded-full bg-amber-400" />
-    </span>
+    <Image
+      src="/intersectia-mark.png"
+      alt=""
+      width={32}
+      height={32}
+      priority
+      className="size-8"
+    />
   );
 }
 

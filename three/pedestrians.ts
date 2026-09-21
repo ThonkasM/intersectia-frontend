@@ -144,11 +144,9 @@ function buildPerson(clothesMat: THREE.MeshStandardMaterial): Person {
 
   const body = new THREE.Mesh(BODY_GEO, clothesMat);
   body.position.y = 0.78;
-  body.castShadow = true;
   g.add(body);
   const head = new THREE.Mesh(HEAD_GEO, SKIN_MAT);
   head.position.y = 1.22;
-  head.castShadow = true;
   g.add(head);
 
   return {

@@ -21,8 +21,6 @@ import { buildSky, type SkyHandle } from './sky';
 import { getSceneTheme, registerScene, unregisterScene } from './theme';
 import { initVehicleLighting, updateHeadlights } from './vehicleLights';
 
-initVehicleLighting();
-
 let activeMode: SimulationMode | null = null;
 
 export function getActiveMode(): SimulationMode | null {
@@ -34,6 +32,7 @@ export function initDemo(container: HTMLElement, mode: SimulationMode): () => vo
   const roadMaterials = buildRoad(scene);
   registerScene(scene, roadMaterials);
   registerShadows(renderer, sunLight);
+  const disposeVehicleLighting = initVehicleLighting(scene);
   const cameraRig = new CameraRig(container);
   setActiveRig(cameraRig);
   activeMode = mode;
@@ -123,14 +122,26 @@ export function initDemo(container: HTMLElement, mode: SimulationMode): () => vo
     // El minimapa se renderiza en frames alternos: es un segundo pase completo.
     if (cameraRig.hasFollowTarget() && frame % 2 === 0) {
       const { size, margin } = minimapRect;
+      // No se toca scene.fog: cambiar su presencia recompila los shaders. Se
+      // neutraliza solo el rango del fog durante el pase del minimapa.
       const fog = scene.fog;
-      scene.fog = null;
+      let savedNear = 0;
+      let savedFar = 0;
+      if (fog instanceof THREE.Fog) {
+        savedNear = fog.near;
+        savedFar = fog.far;
+        fog.near = 1e6;
+        fog.far = 2e6;
+      }
       renderer.setScissorTest(true);
       renderer.setViewport(margin, margin, size, size);
       renderer.setScissor(margin, margin, size, size);
       renderer.render(scene, cameraRig.satelliteCamera);
       renderer.setScissorTest(false);
-      scene.fog = fog;
+      if (fog instanceof THREE.Fog) {
+        fog.near = savedNear;
+        fog.far = savedFar;
+      }
     }
   }
   loop();
@@ -171,6 +182,7 @@ export function initDemo(container: HTMLElement, mode: SimulationMode): () => vo
     trees = null;
     unregisterShadows();
     mode.stop();
+    disposeVehicleLighting();
     cameraRig.dispose();
     setActiveRig(null);
     activeMode = null;

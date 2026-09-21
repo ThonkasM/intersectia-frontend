@@ -43,7 +43,7 @@ export function buildRoad(scene: THREE.Scene): RoadMaterials {
     groundMat,
   );
   ground.rotation.x = -Math.PI / 2;
-  ground.position.y = -0.01;
+  ground.position.y = -0.05;
   ground.receiveShadow = true;
   scene.add(ground);
 
@@ -64,7 +64,13 @@ export function buildRoad(scene: THREE.Scene): RoadMaterials {
   roadEW.receiveShadow = true;
   scene.add(roadEW);
 
-  const centerLineMat = new THREE.MeshStandardMaterial({ color: p.centerLine, roughness: 0.6 });
+  const centerLineMat = new THREE.MeshStandardMaterial({
+    color: p.centerLine,
+    roughness: 0.6,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1,
+  });
 
   const centerLines = new THREE.Mesh(
     mergeOrFirst([
@@ -75,11 +81,23 @@ export function buildRoad(scene: THREE.Scene): RoadMaterials {
   );
   scene.add(centerLines);
 
-  const dashMat = new THREE.MeshStandardMaterial({ color: p.laneLine, roughness: 0.7 });
+  const dashMat = new THREE.MeshStandardMaterial({
+    color: p.laneLine,
+    roughness: 0.7,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1,
+  });
   const dashes = new THREE.Mesh(buildDashes(), dashMat);
   scene.add(dashes);
 
-  const zebraMat = new THREE.MeshStandardMaterial({ color: p.zebra, roughness: 0.95 });
+  const zebraMat = new THREE.MeshStandardMaterial({
+    color: p.zebra,
+    roughness: 0.95,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1,
+  });
   const zebra = new THREE.Mesh(buildZebraCrossings(), zebraMat);
   scene.add(zebra);
 
