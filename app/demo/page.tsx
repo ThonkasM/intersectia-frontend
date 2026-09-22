@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 import ThreeCanvas from '@/components/three/ThreeCanvas';
 import Compass from '@/components/three/Compass';
@@ -164,10 +164,18 @@ function ToggleRow({
   );
 }
 
+// La demo se puede embeber en un WebView (app mobile) con `?embed=1`, que oculta el botón "Volver".
+const subscribeEmbed = () => () => {};
+const getEmbedSnapshot = () =>
+  typeof window !== 'undefined' &&
+  new URLSearchParams(window.location.search).get('embed') === '1';
+const getEmbedServerSnapshot = () => false;
+
 export default function DemoPage() {
   // La demo es 100% interactiva (WebGL, WebSocket, mando, tema): se monta solo
   // en el cliente para evitar mismatches de hidratación (server vs client).
   const [mounted, setMounted] = useState(false);
+  const embedded = useSyncExternalStore(subscribeEmbed, getEmbedSnapshot, getEmbedServerSnapshot);
   const [, setZoomTick] = useState(0);
   const { theme } = useTheme();
   useEffect(() => {
@@ -177,6 +185,7 @@ export default function DemoPage() {
     const id = requestAnimationFrame(() => setMounted(true));
     return () => cancelAnimationFrame(id);
   }, []);
+
 
   const [mode, setMode] = useState<SimMode>('traditional');
   const [advanced, setAdvanced] = useState(isAdvancedGraphicsOn());
@@ -588,12 +597,16 @@ export default function DemoPage() {
       <Compass />
 
       <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between gap-4 p-4">
-        <Link
-          href="/"
-          className="pointer-events-auto rounded-lg border border-overlay-border bg-overlay px-3 py-2 text-sm text-foreground transition-colors hover:border-foreground/40"
-        >
-          ← Volver
-        </Link>
+        {embedded ? (
+          <span aria-hidden />
+        ) : (
+          <Link
+            href="/"
+            className="pointer-events-auto rounded-lg border border-overlay-border bg-overlay px-3 py-2 text-sm text-foreground transition-colors hover:border-foreground/40"
+          >
+            ← Volver
+          </Link>
+        )}
 
         <div className="hidden flex-col items-center gap-1 wide:flex">
           <h1 className="text-sm font-medium text-foreground">
