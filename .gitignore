@@ -40,3 +40,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# artículo científico (personal, no versionado)
+/20220124-Plantilla-de-articulo.docx
+/Articulo-IntersectIA-IoT-VehiculosAutonomos.docx
+/Articulo-IntersectIA-IoT-VehiculosAutonomos.md
+/Figura1-arquitectura-intersectia.png
