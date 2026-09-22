@@ -84,17 +84,25 @@ export function initDemo(container: HTMLElement, mode: SimulationMode): () => vo
     const height = container.clientHeight;
     if (width <= 0 || height <= 0) return;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(width, height, false);
+    renderer.setSize(width, height);
     cameraRig.resize(width, height);
     markShadowsDirty();
   };
   applySize();
+  let resizeTimer = 0;
+  const onResize = (): void => {
+    applySize();
+    // iOS puede reportar dimensiones viejas justo tras rotar: reintentar al
+    // asentarse el layout (además del ResizeObserver del contenedor).
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(applySize, 250);
+  };
   const resizeObserver =
     typeof ResizeObserver !== 'undefined'
       ? new ResizeObserver(() => applySize())
       : null;
   resizeObserver?.observe(container);
-  window.addEventListener('resize', applySize);
+  window.addEventListener('resize', onResize);
 
   let raf = 0;
   let lastT = performance.now();
@@ -169,7 +177,8 @@ export function initDemo(container: HTMLElement, mode: SimulationMode): () => vo
     cancelAnimationFrame(raf);
     container.removeEventListener('pointerdown', onPointerDown);
     container.removeEventListener('click', onClick);
-    window.removeEventListener('resize', applySize);
+    window.removeEventListener('resize', onResize);
+    window.clearTimeout(resizeTimer);
     resizeObserver?.disconnect();
     unsubGraphics();
     neighborhood?.dispose();

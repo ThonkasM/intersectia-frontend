@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Layout "de escritorio" para la demo: requiere ancho Y altura suficientes, así
+   un teléfono en horizontal (ancho grande, alto chico) usa el layout compacto. */
+@custom-variant wide (@media (min-width: 640px) and (min-height: 560px));
+
 :root {
   --background: #0a0e14;
   --foreground: #e6e9ef;

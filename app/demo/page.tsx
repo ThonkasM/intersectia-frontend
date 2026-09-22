@@ -415,14 +415,14 @@ export default function DemoPage() {
             hint={theme === 'light' ? 'Tema claro' : 'Tema oscuro'}
             onClick={() => setView('apariencia')}
           />
-          <div className="sm:hidden">
+          <div className="wide:hidden">
             <MenuRow
               label="Métricas"
               hint={`Cruzados ${hud.crossed} · En espera ${hud.waiting}`}
               onClick={() => setView('metricas')}
             />
           </div>
-          <div className="sm:hidden">
+          <div className="wide:hidden">
             <MenuRow
               label="Decisiones"
               hint={
@@ -576,14 +576,14 @@ export default function DemoPage() {
 
   if (!mounted) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-[#0a0e14]">
+      <div className="flex h-dvh w-full items-center justify-center bg-[#0a0e14]">
         <p className="text-sm text-white/50">Cargando demo…</p>
       </div>
     );
   }
 
   return (
-    <div className="relative h-screen w-full overflow-hidden bg-[#0a0e14]">
+    <div className="relative h-dvh w-full overflow-hidden bg-[#0a0e14]">
       <ThreeCanvas mode={mode} />
       <Compass />
 
@@ -595,7 +595,7 @@ export default function DemoPage() {
           ← Volver
         </Link>
 
-        <div className="hidden flex-col items-center gap-1 sm:flex">
+        <div className="hidden flex-col items-center gap-1 wide:flex">
           <h1 className="text-sm font-medium text-foreground">
             Demo · Gestión autónoma de intersección
           </h1>
@@ -664,7 +664,7 @@ export default function DemoPage() {
       {/* Métricas abajo a la derecha. En primera persona el minimapa ya muestra
           estado, velocidad y carril del jugador, así que ese bloque se omite. */}
       {/* Métricas (solo escritorio; en móvil se ven dentro del panel). */}
-      <div className="pointer-events-none absolute bottom-4 right-4 z-10 hidden w-72 max-w-[calc(100vw-1.5rem)] flex-col gap-2 sm:flex">
+      <div className="pointer-events-none absolute bottom-4 right-4 z-10 hidden w-72 max-w-[calc(100vw-1.5rem)] flex-col gap-2 wide:flex">
         <div className="pointer-events-auto rounded-xl border border-overlay-border bg-overlay p-3 text-xs text-muted backdrop-blur">
           <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted">
             Métricas
@@ -677,7 +677,7 @@ export default function DemoPage() {
       {panelOpen && (
         <aside
           id="demo-panel"
-          className="absolute bottom-3 left-3 right-3 top-16 z-20 flex flex-col overflow-hidden rounded-2xl border border-overlay-border bg-overlay shadow-2xl backdrop-blur sm:bottom-[16rem] sm:left-auto sm:right-3 sm:top-20 sm:w-72"
+          className="absolute bottom-3 left-3 right-3 top-16 z-20 flex flex-col overflow-hidden rounded-2xl border border-overlay-border bg-overlay shadow-2xl backdrop-blur wide:bottom-[16rem] wide:left-auto wide:right-3 wide:top-20 wide:w-72"
         >
           <header className="flex items-center gap-2 border-b border-overlay-border/70 px-3 py-2.5">
             {view !== 'menu' && (
@@ -853,7 +853,7 @@ export default function DemoPage() {
 
       {/* Decisiones (solo escritorio; en móvil se ven dentro del panel). */}
       <div
-        className={`pointer-events-auto absolute bottom-4 left-1/2 z-10 hidden w-96 max-w-[calc(100vw-1.5rem)] -translate-x-1/2 overflow-y-auto rounded-xl border border-overlay-border bg-overlay p-3 text-xs text-muted backdrop-blur sm:block ${
+        className={`pointer-events-auto absolute bottom-4 left-1/2 z-10 hidden w-96 max-w-[calc(100vw-1.5rem)] -translate-x-1/2 overflow-y-auto rounded-xl border border-overlay-border bg-overlay p-3 text-xs text-muted backdrop-blur wide:block ${
           effectiveFirstPerson ? 'max-h-32' : 'max-h-48'
         }`}
       >
@@ -865,7 +865,7 @@ export default function DemoPage() {
 
       {/* Barra de estado compacta (solo móvil). */}
       {!effectiveFirstPerson && (
-        <div className="pointer-events-none absolute inset-x-3 bottom-3 z-10 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-xl border border-overlay-border bg-overlay px-3 py-1.5 text-[11px] text-muted backdrop-blur sm:hidden">
+        <div className="pointer-events-none absolute inset-x-3 bottom-3 z-10 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-xl border border-overlay-border bg-overlay px-3 py-1.5 text-[11px] text-muted backdrop-blur wide:hidden">
           <span className="font-mono text-foreground">{fps} fps</span>
           <span className="h-3 w-px bg-white/20" />
           <span>
@@ -892,7 +892,7 @@ export default function DemoPage() {
       )}
 
       {!effectiveFirstPerson && (
-        <p className="pointer-events-none absolute bottom-4 left-4 hidden text-xs text-faint sm:block">
+        <p className="pointer-events-none absolute bottom-4 left-4 hidden text-xs text-faint wide:block">
           Arrastra para orbitar · Rueda para zoom · Clic en un vehículo para detenerlo/reanudarlo
         </p>
       )}
