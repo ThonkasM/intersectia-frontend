@@ -10,7 +10,7 @@ Next.js 16 (App Router) + Three.js, con export estático (`output: 'export'`). L
   - `traditionalMode.ts` — simulación local (prioridad a la derecha).
   - `managedMode.ts` — cliente del backend (managed / managed-ai).
 - `three/net/socket.ts` — `IntersectionSocket` (socket.io-client).
-- `three/input/` — gamepad y vehículo del jugador.
+- `three/input/` — fuentes de control del jugador (mando y teclado) y el vehículo del jugador.
 - `three/hud.ts` — puente suscripción→React (no manipula el DOM directo).
 
 ## Sesión por visitante
@@ -25,7 +25,7 @@ Next.js 16 (App Router) + Three.js, con export estático (`output: 'export'`). L
 
 - `state` (20 Hz) → `ManagedMode.applySnapshot` fija `targetPos`/estado; el `lerp` suaviza.
 - `decision` → alimenta el HUD.
-- `playerState` a ~15 Hz desde el gamepad.
+- `playerState` a ~15 Hz desde el mando o el teclado (`ManagedMode` combina ambos; el jugador se crea con el primer input).
 - Chat: `lib/chat/` (cliente y sesión agnósticos, reutilizables en Expo/React Native) y `hooks/useChat`; `components/chat/ChatWidget` hace `POST {NEXT_PUBLIC_API_URL}/ai/chat` y consume `GET /ai/chat/topics`.
 
 ## Variables de entorno

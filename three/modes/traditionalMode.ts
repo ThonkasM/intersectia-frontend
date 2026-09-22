@@ -287,6 +287,7 @@ export class TraditionalMode implements SimulationMode {
       fairnessGapSeconds: null,
       connected: false,
       gamepadConnected: false,
+      keyboardActive: false,
       playerAuthorized: null,
       playerState: null,
       queueLength: this.queue.length,

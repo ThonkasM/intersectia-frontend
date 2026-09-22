@@ -216,6 +216,7 @@ export default function DemoPage() {
     fairnessGapSeconds: null,
     connected: false,
     gamepadConnected: false,
+    keyboardActive: false,
     playerAuthorized: null,
     playerState: null,
     queueLength: 0,
@@ -230,7 +231,8 @@ export default function DemoPage() {
   useEffect(() => hudBridge.subscribe(setHud), []);
 
   const isManaged = mode !== 'traditional';
-  const firstPersonAvailable = isManaged && hud.gamepadConnected;
+  const playerConnected = isManaged && (hud.gamepadConnected || hud.keyboardActive);
+  const firstPersonAvailable = playerConnected;
   // El modo de cámara lo posee el CameraRig (el botón de la UI y el mando (X) lo cambian).
   const effectiveFirstPerson =
     firstPersonAvailable && getActiveRig()?.mode === 'firstPerson';
@@ -364,7 +366,7 @@ export default function DemoPage() {
           <dd className="text-muted">{hud.connected ? 'conectado' : 'desconectado'}</dd>
         </div>
       )}
-      {isManaged && hud.gamepadConnected && !effectiveFirstPerson && (
+      {playerConnected && !effectiveFirstPerson && (
         <div className="space-y-1 border-t border-overlay-border/70 pt-1">
           <div className="flex items-baseline justify-between gap-2">
             <dt className="text-muted">Jugador · carril {hud.playerLane}</dt>
@@ -500,7 +502,7 @@ export default function DemoPage() {
             title={
               firstPersonAvailable
                 ? 'Vista del conductor + minimapa'
-                : 'Conecta un mando en modo gestionado para usar esta vista'
+                : 'Disponible en modo gestionado (teclado o mando)'
             }
             active={effectiveFirstPerson}
             onToggle={toggleFirstPerson}
@@ -758,21 +760,28 @@ export default function DemoPage() {
                   className={`h-2 w-2 rounded-full ${
                     !isManaged
                       ? 'bg-amber-400'
-                      : hud.gamepadConnected
+                      : playerConnected
                         ? 'bg-emerald-400'
                         : 'bg-red-500'
                   }`}
                 />
-                Mando
+                Controles
               </span>
               <span>
                 {!isManaged
                   ? 'disponible en gestionado'
                   : hud.gamepadConnected
-                    ? `conectado${hud.playerState ? ` · ${STATE_LABELS[hud.playerState]}` : ''}`
-                    : 'presiona un botón para conectar'}
+                    ? `mando${hud.playerState ? ` · ${STATE_LABELS[hud.playerState]}` : ''}`
+                    : hud.keyboardActive
+                      ? `teclado${hud.playerState ? ` · ${STATE_LABELS[hud.playerState]}` : ''}`
+                      : 'teclado o mando'}
               </span>
             </div>
+            {isManaged && (
+              <p className="mb-2 text-[11px] leading-relaxed text-faint">
+                Teclado: W/↑ acelerar · S/↓ frenar · A/D o ←/→ carril · C cámara · Z zoom
+              </p>
+            )}
             <button
               type="button"
               onClick={handleReset}

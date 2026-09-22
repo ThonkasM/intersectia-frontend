@@ -10,6 +10,7 @@ export type HudSnapshot = {
   fairnessGapSeconds: number | null;
   connected: boolean;
   gamepadConnected: boolean;
+  keyboardActive: boolean;
   playerAuthorized: boolean | null;
   playerState: VehicleState | null;
   queueLength: number;

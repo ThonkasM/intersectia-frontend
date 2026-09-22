@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useChat } from "@/hooks/useChat";
+import { MarkdownMessage } from "@/components/chat/MarkdownMessage";
 import TopicsSheet from "@/components/chat/TopicsSheet";
 import { CHAT_SESSION_KEY, resolveSessionId } from "@/lib/chat/session";
 import type { ChatMessage } from "@/lib/chat/types";
@@ -112,7 +113,7 @@ export default function ChatWidget() {
                   key={index}
                   className="mr-auto max-w-[85%] rounded-xl border border-border bg-surface px-3 py-2 text-sm text-foreground"
                 >
-                  {message.text}
+                  <MarkdownMessage text={message.text} />
                 </div>
               ),
             )}

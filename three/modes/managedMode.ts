@@ -14,6 +14,7 @@ import { isCollisionsEnabled } from '../collisions';
 import { isTurnsEnabled } from '../turns';
 import { hudBridge } from '../hud';
 import { GamepadController } from '../input/gamepadController';
+import { KeyboardController } from '../input/keyboardController';
 import { PlayerVehicle } from '../input/playerVehicle';
 import { IntersectionSocket, type RemoteVehicleDto } from '../net/socket';
 import { Vehicle } from '../vehicle';
@@ -39,6 +40,7 @@ export class ManagedMode implements SimulationMode {
   private unsubscribers: (() => void)[] = [];
   private scene?: THREE.Scene;
   private gamepad = new GamepadController();
+  private keyboard = new KeyboardController();
   private player: PlayerVehicle | null = null;
   private playerSeenOnce = false;
   private sendTimer = 0;
@@ -82,13 +84,14 @@ export class ManagedMode implements SimulationMode {
       })
     );
     this.unsubscribers.push(
-      this.gamepad.onStatus((connected) => this.handleGamepad(connected))
+      this.gamepad.onStatus(() => this.syncInput())
     );
-    // Mando ya conectado antes de remontar el modo (cambio de modo): el scan del
-    // constructor no alcanzó a notificar a este start().
-    if (this.gamepad.isConnected() && !this.player) {
-      this.handleGamepad(true);
-    }
+    this.unsubscribers.push(
+      this.keyboard.onStatus(() => this.syncInput())
+    );
+    // Mando ya conectado (o teclado ya usado) antes de remontar el modo (cambio
+    // de modo): el scan del constructor no alcanzó a notificar a este start().
+    this.syncInput();
     this.publish();
   }
 
@@ -100,6 +103,7 @@ export class ManagedMode implements SimulationMode {
     for (const unsub of this.unsubscribers) unsub();
     this.unsubscribers = [];
     this.gamepad.dispose();
+    this.keyboard.dispose();
     for (const v of this.vehicles.values()) {
       this.scene?.remove(v.mesh);
       this.disposeMesh(v.mesh);
@@ -118,8 +122,16 @@ export class ManagedMode implements SimulationMode {
 
   onFrame(dt: number): void {
     for (const v of this.vehicles.values()) v.syncVisual(dt);
-    if (this.player && this.gamepad.isConnected()) {
-      const input = this.gamepad.read();
+    if (this.player && this.isInputActive()) {
+      const gp = this.gamepad.read();
+      const kb = this.keyboard.read();
+      const input = {
+        throttle: Math.max(gp.throttle, kb.throttle),
+        brake: Math.max(gp.brake, kb.brake),
+        steer: kb.steer !== 0 ? kb.steer : gp.steer,
+        y: gp.y || kb.y,
+        x: gp.x || kb.x,
+      };
       if (input.y && !this.prevY) getActiveRig()?.toggleZoom();
       if (input.x && !this.prevX) this.toggleCameraMode();
       this.prevY = input.y;
@@ -167,8 +179,14 @@ export class ManagedMode implements SimulationMode {
     rig.setMode(rig.mode === 'firstPerson' ? 'orbit' : 'firstPerson');
   }
 
-  private handleGamepad(connected: boolean): void {
-    if (connected) {
+  private isInputActive(): boolean {
+    return this.gamepad.isConnected() || this.keyboard.isActive();
+  }
+
+  // Sincroniza el vehículo del jugador con el estado combinado de los controles
+  // (mando o teclado). Se crea en el primer input y persiste mientras haya alguno.
+  private syncInput(): void {
+    if (this.isInputActive()) {
       if (!this.player && this.scene) {
         this.player = new PlayerVehicle('S', PLAYER_COLOR);
         this.playerSeenOnce = false;
@@ -198,7 +216,7 @@ export class ManagedMode implements SimulationMode {
         this.player.authorized = rv.state === 'crossing';
         this.player.vehicle.setState(rv.state);
         this.player.vehicle.crashed = rv.crashed;
-        if (!this.gamepad.isConnected()) {
+        if (!this.isInputActive()) {
           this.player.vehicle.setTarget(rv.x, rv.z);
         }
         continue;
@@ -230,7 +248,7 @@ export class ManagedMode implements SimulationMode {
         this.scene?.remove(v.mesh);
         this.disposeMesh(v.mesh);
         this.bubbles?.remove(id);
-        if (this.gamepad.isConnected()) {
+        if (this.isInputActive()) {
           this.respawnPlayer();
         } else {
           this.player = null;
@@ -395,6 +413,7 @@ export class ManagedMode implements SimulationMode {
       fairnessGapSeconds: this.fairnessGapSeconds,
       connected: this.connected,
       gamepadConnected: this.gamepad.isConnected(),
+      keyboardActive: this.keyboard.isActive(),
       playerAuthorized: this.player ? this.player.authorized : null,
       playerState: this.player ? this.player.vehicle.state : null,
       queueLength: waiting,

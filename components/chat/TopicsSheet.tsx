@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import type { ChatTopic } from "@/lib/chat/types";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -22,6 +25,83 @@ function groupTopics(topics: ChatTopic[]) {
   }
   return Array.from(map, ([categoria, items]) => ({ categoria, items })).sort(
     (a, b) => categoryRank(a.categoria) - categoryRank(b.categoria),
+  );
+}
+
+function TopicGroup({
+  categoria,
+  label,
+  items,
+  onSelect,
+}: {
+  categoria: string;
+  label: string;
+  items: ChatTopic[];
+  onSelect: (titulo: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const panelId = `topics-${categoria.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`;
+
+  return (
+    <div className="space-y-2">
+      <button
+        type="button"
+        onClick={() => setExpanded((value) => !value)}
+        aria-expanded={expanded}
+        aria-controls={panelId}
+        className="flex w-full items-center justify-between gap-3 rounded-lg px-1 py-1 text-left transition-colors hover:bg-surface-strong"
+      >
+        <span className="font-mono text-xs tracking-[0.2em] text-accent uppercase">
+          {label}
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="font-mono text-xs text-faint">{items.length}</span>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className={`h-4 w-4 text-faint transition-transform ${
+              expanded ? "rotate-90" : ""
+            }`}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <path d="m9 18 6-6-6-6" />
+          </svg>
+        </span>
+      </button>
+
+      {expanded && (
+        <div id={panelId} className="space-y-2">
+          {items.map((topic) => (
+            <button
+              key={topic.slug}
+              type="button"
+              onClick={() => onSelect(topic.titulo)}
+              className="flex w-full items-center justify-between gap-3 rounded-lg border border-border bg-surface px-3 py-2 text-left text-sm text-foreground transition-colors hover:border-amber-400/40"
+            >
+              <span>{topic.titulo}</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4 shrink-0 text-faint"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <path d="m9 18 6-6-6-6" />
+              </svg>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -74,35 +154,13 @@ export default function TopicsSheet({
           <p className="text-sm text-muted">No hay temas disponibles.</p>
         ) : (
           groups.map((group) => (
-            <div key={group.categoria} className="space-y-2">
-              <p className="font-mono text-xs tracking-[0.2em] text-accent uppercase">
-                {CATEGORY_LABELS[group.categoria] ?? group.categoria}
-              </p>
-              <div className="space-y-2">
-                {group.items.map((topic) => (
-                  <button
-                    key={topic.slug}
-                    type="button"
-                    onClick={() => onSelect(topic.titulo)}
-                    className="flex w-full items-center justify-between gap-3 rounded-lg border border-border bg-surface px-3 py-2 text-left text-sm text-foreground transition-colors hover:border-amber-400/40"
-                  >
-                    <span>{topic.titulo}</span>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4 shrink-0 text-faint"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="m9 18 6-6-6-6" />
-                    </svg>
-                  </button>
-                ))}
-              </div>
-            </div>
+            <TopicGroup
+              key={group.categoria}
+              categoria={group.categoria}
+              label={CATEGORY_LABELS[group.categoria] ?? group.categoria}
+              items={group.items}
+              onSelect={onSelect}
+            />
           ))
         )}
       </div>
